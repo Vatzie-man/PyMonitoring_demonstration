@@ -30,7 +30,8 @@ class Mattermost:
                 if response.status_code == 200:
                     return response
 
-            # TODO very bad practice to catch all exceptions and don't even print/log what happened
+            # very bad practice to catch all exceptions and don't even print/log what happened
+            # comment: in that case it doesn't matter cos there is nothing I can do about that; that is only for info purpose
             except Exception:
                 info_logger.info('%s', 'Unable to edit post')
             time.sleep(self.retry_delay)
