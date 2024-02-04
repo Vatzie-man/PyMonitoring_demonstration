@@ -99,32 +99,46 @@ class OutOfTolerance:
     def check_temp(self, x, settings, data, state):
         # x, self.person.names[person_settings], data, state = 'inlet'
 
-        if state == 'inlet':
-            y = x
+        if state == 'ACH_inlet':
+            z = y = x
             settings_key = '_inlet'
             data_key = 'Inlet Temp'
             message_key = "temp wejściowa"
 
-        if state == 'outlet':
-            y = x
+        if state == 'ACH_outlet':
+            z = y = x
             settings_key = '_outlet'
             data_key = 'Outlet Temp'
             message_key = "temp wyjściowa"
 
-        if state == 'return':
-            y = '_'.join(x.split(' '))
+        if state == 'PCW_return':
+            z = y = '_'.join(x.split(' '))
             settings_key = '_return'
             data_key = 'Return Air'
             message_key = "Return"
 
+        if state == 'CDUs_t1_min':
+            y = x[0:3] + 's'
+            z = x
+            settings_key = '_t1_min'
+            data_key = 't1'
+            message_key = "Niska Temp 1"
+
+        if state == 'CDUs_t1_max':
+            y = x[0:3] + 's'
+            z = x
+            settings_key = '_t1_max'
+            data_key = 't1'
+            message_key = "Wysoka Temp 1"
+
         if self.settings[y + settings_key] < float(data[x][data_key]):
-            if self.DEVs_prev_states[settings][y + settings_key]:
+            if self.DEVs_prev_states[settings][z + settings_key]:
                 value = float(data[x][data_key])
                 message = f"{x} {message_key}: {value}C"
-                self.DEVs_prev_states[settings][y + settings_key] = False
+                self.DEVs_prev_states[settings][z + settings_key] = False
                 return message
         else:
-            self.DEVs_prev_states[settings][y + settings_key] = True
+            self.DEVs_prev_states[settings][z + settings_key] = True
             return None
 
         if x[0:3] == 'PCW':
@@ -180,29 +194,15 @@ class OutOfTolerance:
             if zabbix_online == True:  # is there data from Zabbix
 
                 for x in [k for k in data.keys() if k[0:3] == 'CDU']:
+                    message = self.check_temp(x, self.person.names[person_settings], data, state='CDUs_t1_min')
+                    self.send_alerts(message, send_alert_sets)
 
-                    if self.settings['CDUs_t1_min'] > float(data[x]['t1']):
-                        if self.DEVs_prev_states[self.person.names[person_settings]][x + '_t1_min']:
-                            value = float(data[x]['t1'])
-                            message = f"Niska Temp 1 {x} {value}C"
-                            self.send_alerts(message, send_alert_sets)
-
-                            self.DEVs_prev_states[self.person.names[person_settings]][x + '_t1_min'] = False
-                    else:
-                        self.DEVs_prev_states[self.person.names[person_settings]][x + '_t1_min'] = True
-
-                    if self.settings['CDUs_t1_max'] < float(data[x]['t1']):
-                        if self.DEVs_prev_states[self.person.names[person_settings]][x + '_t1_max']:
-                            value = float(data[x]['t1'])
-                            message = f"Wysoka Temp 1 {x} {value}C"
-                            self.send_alerts(message, send_alert_sets)
-
-                            self.DEVs_prev_states[self.person.names[person_settings]][x + '_t1_max'] = False
-                    else:
-                        self.DEVs_prev_states[self.person.names[person_settings]][x + '_t1_max'] = True
+                    message = self.check_temp(x, self.person.names[person_settings], data, state='CDUs_t1_max')
+                    self.send_alerts(message, send_alert_sets)
 
                 self.DEVs_prev_states[self.person.names[person_settings]]['Zabbix'] = 1
 
+            # if there is no data from zabbix in two request on the raw then alert message will be send; though single occurances of no data is frequnent
             if zabbix_online == False and self.DEVs_prev_states[self.person.names[person_settings]]['Zabbix'] == True:
                 self.DEVs_prev_states[self.person.names[person_settings]]['Zabbix'] = False
                 message = f"Brak danych z Zabbix."
@@ -212,10 +212,10 @@ class OutOfTolerance:
             for x in [k for k in data.keys() if k[0:3] == 'ACH']:
                 try:
 
-                    message = self.check_temp(x, self.person.names[person_settings], data, state='inlet')
+                    message = self.check_temp(x, self.person.names[person_settings], data, state='ACH_inlet')
                     self.send_alerts(message, send_alert_sets)
 
-                    message = self.check_temp(x, self.person.names[person_settings], data, state='outlet')
+                    message = self.check_temp(x, self.person.names[person_settings], data, state='ACH_outlet')
                     self.send_alerts(message, send_alert_sets)
 
                     message = self.check_status(x, self.person.names[person_settings], data)
@@ -229,7 +229,7 @@ class OutOfTolerance:
             for x in [k for k in data.keys() if k[0:3] == 'PCW']:
 
                 try:
-                    message = self.check_temp(x, self.person.names[person_settings], data, state='return')
+                    message = self.check_temp(x, self.person.names[person_settings], data, state='PCW_return')
                     self.send_alerts(message, send_alert_sets)
 
                 except Exception:
