@@ -1,3 +1,4 @@
+import dataclasses
 import requests
 import logging
 import time
@@ -12,26 +13,34 @@ handler_info = logging.StreamHandler()
 handler_info.setFormatter(formatter_info)
 info_logger.addHandler(handler_info)
 
-# call_me_bot
-CALL_ME_BOT_URL = secrets_oft['call_me_bot_url']
-CALL_ME_BOT_APIKEY = secrets_oft['cal_me_bot_apikey']
 
-# each user devices states
-DEVs_prev_states = {'wk': None, 'ms': None, 'gs': None, 'wc': None, 'kr': None, 'ks': None, 'pk': None, 'oo': None}
+@dataclasses.dataclass
+class WhatsApp:
+    destination = secrets_oft['call_me_bot_url']
+    apikey = secrets_oft['cal_me_bot_apikey']
+
+
+@dataclasses.dataclass
+class Person:
+    names = dict((int(k), v) for k, v in secrets_oft['personons'].items())
+    dict_person_settings = dict((int(k), v) for k, v in secrets_oft['dict_person_settings'].items())  # [nastawy, alert destination]
 
 
 class OutOfTolerance:
 
     def __init__(self):
-        self.first_program_run = True
-        self.settings = None
 
+        self.settings = None
         self.mm = Mattermost()
-        self.persons = dict((int(k), v) for k, v in secrets_oft['personons'].items())
-        self.dict_person_settings = dict((int(k), v) for k, v in secrets_oft['dict_person_settings'].items())  # [nastawy, alert destination]
+        self.first_program_run = True
+        self.DEVs_prev_states = {'wk': None, 'ms': None, 'gs': None, 'wc': None, 'kr': None, 'ks': None, 'pk': None, 'oo': None}
+
+        self.person = Person()
+        self.whatsapp = WhatsApp()
 
     @staticmethod
     def current_DEVs_state(data):
+        # TODO while program start (first_program_run) if any device if Offline it causes crash
         return {
             # states
             'ACH1': data['ACH1']['ACH1'],
@@ -69,73 +78,87 @@ class OutOfTolerance:
         }
 
     def set_first_program_run(self, data):
-        for k in DEVs_prev_states.keys():
-            DEVs_prev_states[k] = self.current_DEVs_state(data)
+        for k in self.DEVs_prev_states.keys():
+            self.DEVs_prev_states[k] = self.current_DEVs_state(data)
         self.first_program_run = False
 
     def send_alerts(self, message, send_alert_sets):
         if message:
             notifications, whatsapp, person_settings = send_alert_sets
             if notifications:
-                channel_id = self.dict_person_settings[person_settings][1]
+                channel_id = self.person.dict_person_settings[person_settings][1]
                 self.mm.mm_post(' ' + message, channel_id)
 
                 if self.settings['Plus WhatsApp'] == 1:
                     if whatsapp:
                         requests.post(
-                            CALL_ME_BOT_URL + self.persons[person_settings] + ': ' + message + CALL_ME_BOT_APIKEY)
+                            self.whatsapp.destination + self.person.names[person_settings]
+                            + ': ' + message + self.whatsapp.apikey)
                 time.sleep(1)
 
     def check_temp(self, x, settings, data, state):
-        # x, self.persons[person_settings], data, state = 'inlet'
+        # x, self.person.names[person_settings], data, state = 'inlet'
 
         if state == 'inlet':
+            y = x
             settings_key = '_inlet'
             data_key = 'Inlet Temp'
             message_key = "temp wejściowa"
 
         if state == 'outlet':
+            y = x
             settings_key = '_outlet'
             data_key = 'Outlet Temp'
             message_key = "temp wyjściowa"
 
-        if self.settings[x + settings_key] < float(data[x][data_key]):
-            if DEVs_prev_states[settings][x + settings_key]:
+        if state == 'return':
+            y = '_'.join(x.split(' '))
+            settings_key = '_return'
+            data_key = 'Return Air'
+            message_key = "Return"
+
+        if self.settings[y + settings_key] < float(data[x][data_key]):
+            if self.DEVs_prev_states[settings][y + settings_key]:
                 value = float(data[x][data_key])
                 message = f"{x} {message_key}: {value}C"
-                DEVs_prev_states[settings][x + settings_key] = False
+                self.DEVs_prev_states[settings][y + settings_key] = False
                 return message
         else:
-            DEVs_prev_states[settings][x + settings_key] = True
+            self.DEVs_prev_states[settings][y + settings_key] = True
             return None
+
+        if x[0:3] == 'PCW':
+            self.DEVs_prev_states[settings][y] = 'Online'
 
     def check_status(self, x, settings, data):
-        # x, self.persons[person_settings], data
+        # x, self.person.names[person_settings], data
 
-        if (DEVs_prev_states[settings][x] in ('Warning On', 'Local ON')) != (data[x][x] in ('Warning On', 'Local ON')):
+        if (self.DEVs_prev_states[settings][x] in ('Warning On', 'Local ON')) != (data[x][x] in ('Warning On', 'Local ON')):
+
             value = 'On' if data[x][x] in ('Warning On', 'Local ON') else data[x][x]
             message = f"{x}: {value}"
-            DEVs_prev_states[settings][x] = data[x][x]
+            self.DEVs_prev_states[settings][x] = data[x][x]
             return message
         else:
-            DEVs_prev_states[settings][x] = data[x][x]
+            self.DEVs_prev_states[settings][x] = data[x][x]
             return None
 
-        if (DEVs_prev_states[self.persons[person_settings]][x] in ('Warning On', 'Local ON')) != (data[x][x] in ('Warning On', 'Local ON')):
+        if (self.DEVs_prev_states[self.person.names[person_settings]][x] in ('Warning On', 'Local ON')) != (data[x][x] in ('Warning On', 'Local ON')):
 
             value = 'On' if data[x][x] in ('Warning On', 'Local ON') else data[x][x]
             message = f"{x}: {value}"
             self.send_alerts(message, send_alert_sets)
 
-            DEVs_prev_states[self.persons[person_settings]][x] = data[x][x]
+            self.DEVs_prev_states[self.person.names[person_settings]][x] = data[x][x]
         else:
-            DEVs_prev_states[self.persons[person_settings]][x] = data[x][x]
+            self.DEVs_prev_states[self.person.names[person_settings]][x] = data[x][x]
 
     def handle_offline(self, x, settings):
-        if DEVs_prev_states[settings][x] == 'Offline':
+
+        if self.DEVs_prev_states[settings][x] == 'Offline':
             return None
         else:
-            DEVs_prev_states[settings][x] = 'Offline'
+            self.DEVs_prev_states[settings][x] = 'Offline'
             message = f'{x}: Offline.'
             return message
 
@@ -144,54 +167,54 @@ class OutOfTolerance:
         if self.first_program_run:
 
             if only_OO:
-                self.settings = self.mm.make_dict_from_mm(self.dict_person_settings[person_settings][0])
-                info_logger.info('%s %s', str(self.persons[person_settings]), str(self.settings) + '\n')
+                self.settings = self.mm.make_dict_from_mm(self.person.dict_person_settings[person_settings][0])
+                info_logger.info('%s %s', str(self.person.names[person_settings]), str(self.settings) + '\n')
             self.set_first_program_run(data)
 
         try:
 
             if not only_OO:  # in only_OO mode the dips are used; if that mode is off it must be as switches are always on (notifications and whatsapp)
-                self.settings = self.mm.make_dict_from_mm(self.dict_person_settings[person_settings][0])
+                self.settings = self.mm.make_dict_from_mm(self.person.dict_person_settings[person_settings][0])
                 notifications = True
                 whatsapp = True
 
             # destination of a channel if any parameters are out of tolerance
-            channel_id = self.dict_person_settings[person_settings][1]
+            channel_id = self.person.dict_person_settings[person_settings][1]
 
             # if user wish not to listen it will be omitted.
             if self.settings['Powiadomienia'] == 0:
-                DEVs_prev_states[self.persons[person_settings]] = self.current_DEVs_state(data)
+                self.DEVs_prev_states[self.person.names[person_settings]] = self.current_DEVs_state(data)
                 return ''
 
             # CDUs operations and temp comparisons
-            if zabbix_online == True:  # if there is data from Zabbix
+            if zabbix_online == True:  # is there data from Zabbix
 
                 for x in [k for k in data.keys() if k[0:3] == 'CDU']:
 
                     if self.settings['CDUs_t1_min'] > float(data[x]['t1']):
-                        if DEVs_prev_states[self.persons[person_settings]][x + '_t1_min']:
+                        if self.DEVs_prev_states[self.person.names[person_settings]][x + '_t1_min']:
                             value = float(data[x]['t1'])
                             message = f"Niska Temp 1 {x} {value}C"
                             self.send_alerts(message, send_alert_sets)
 
-                            DEVs_prev_states[self.persons[person_settings]][x + '_t1_min'] = False
+                            self.DEVs_prev_states[self.person.names[person_settings]][x + '_t1_min'] = False
                     else:
-                        DEVs_prev_states[self.persons[person_settings]][x + '_t1_min'] = True
+                        self.DEVs_prev_states[self.person.names[person_settings]][x + '_t1_min'] = True
 
                     if self.settings['CDUs_t1_max'] < float(data[x]['t1']):
-                        if DEVs_prev_states[self.persons[person_settings]][x + '_t1_max']:
+                        if self.DEVs_prev_states[self.person.names[person_settings]][x + '_t1_max']:
                             value = float(data[x]['t1'])
                             message = f"Wysoka Temp 1 {x} {value}C"
                             self.send_alerts(message, send_alert_sets)
 
-                            DEVs_prev_states[self.persons[person_settings]][x + '_t1_max'] = False
+                            self.DEVs_prev_states[self.person.names[person_settings]][x + '_t1_max'] = False
                     else:
-                        DEVs_prev_states[self.persons[person_settings]][x + '_t1_max'] = True
+                        self.DEVs_prev_states[self.person.names[person_settings]][x + '_t1_max'] = True
 
-                DEVs_prev_states[self.persons[person_settings]]['Zabbix'] = 1
+                self.DEVs_prev_states[self.person.names[person_settings]]['Zabbix'] = 1
 
-            if zabbix_online == False and DEVs_prev_states[self.persons[person_settings]]['Zabbix'] == True:
-                DEVs_prev_states[self.persons[person_settings]]['Zabbix'] = False
+            if zabbix_online == False and self.DEVs_prev_states[self.person.names[person_settings]]['Zabbix'] == True:
+                self.DEVs_prev_states[self.person.names[person_settings]]['Zabbix'] = False
                 message = f"Brak danych z Zabbix."
                 self.send_alerts(message, send_alert_sets)
 
@@ -199,46 +222,35 @@ class OutOfTolerance:
             for x in [k for k in data.keys() if k[0:3] == 'ACH']:
                 try:
 
-                    message = self.check_temp(x, self.persons[person_settings], data, state='inlet')
+                    message = self.check_temp(x, self.person.names[person_settings], data, state='inlet')
                     self.send_alerts(message, send_alert_sets)
 
-                    message = self.check_temp(x, self.persons[person_settings], data, state='outlet')
+                    message = self.check_temp(x, self.person.names[person_settings], data, state='outlet')
                     self.send_alerts(message, send_alert_sets)
 
-                    message = self.check_status(x, self.persons[person_settings], data)
+                    message = self.check_status(x, self.person.names[person_settings], data)
                     self.send_alerts(message, send_alert_sets)
 
                 except Exception:
-                    message = self.handle_offline(x, self.persons[person_settings])
+                    message = self.handle_offline(x, self.person.names[person_settings])
                     self.send_alerts(message, send_alert_sets)
 
             # PCWs operations and temp comparisons
-            for x, y in [(k, '_'.join(k.split(' '))) for k in data.keys() if k[0:3] == 'PCW']:
+            for x in [k for k in data.keys() if k[0:3] == 'PCW']:
+
                 try:
-                    if self.settings[y + '_return'] < float(data[x]['Return Air']):
-                        if DEVs_prev_states[self.persons[person_settings]][y + '_return']:
-                            value = float(data[x]['Return Air'])
-                            message = f"{x} Return: {value}C"
-                            self.send_alerts(message, send_alert_sets)
+                    message = self.check_temp(x, self.person.names[person_settings], data, state='return')
+                    self.send_alerts(message, send_alert_sets)
 
-                            DEVs_prev_states[self.persons[person_settings]][y + '_return'] = False
-                    else:
-                        DEVs_prev_states[self.persons[person_settings]][y + '_return'] = True
-
-                    DEVs_prev_states[self.persons[person_settings]][y] = 'Online'
                 except Exception:
-                    if DEVs_prev_states[self.persons[person_settings]][y] == 'Offline':
-                        pass
-                    else:
-                        DEVs_prev_states[self.persons[person_settings]][y] = 'Offline'
-                        message = f"{x} Offline."
-                        self.send_alerts(message, send_alert_sets)
+                    message = self.handle_offline(x, self.person.names[person_settings])
+                    self.send_alerts(message, send_alert_sets)
 
             if only_OO:
                 return ('notifications' if (notifications and self.settings['Powiadomienia']) else '') + (
                     ', whatsapp' if (notifications and whatsapp and self.settings['Plus WhatsApp']) else '')
             else:
-                return self.persons[person_settings].upper() + ' ' if self.settings['Plus WhatsApp'] else self.persons[person_settings] + ' '
+                return self.person.names[person_settings].upper() + ' ' if self.settings['Plus WhatsApp'] else self.person.names[person_settings] + ' '
 
         except Exception:
             return ''
