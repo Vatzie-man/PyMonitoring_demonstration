@@ -143,16 +143,6 @@ class OutOfTolerance:
             self.DEVs_prev_states[settings][x] = data[x][x]
             return None
 
-        if (self.DEVs_prev_states[self.person.names[person_settings]][x] in ('Warning On', 'Local ON')) != (data[x][x] in ('Warning On', 'Local ON')):
-
-            value = 'On' if data[x][x] in ('Warning On', 'Local ON') else data[x][x]
-            message = f"{x}: {value}"
-            self.send_alerts(message, send_alert_sets)
-
-            self.DEVs_prev_states[self.person.names[person_settings]][x] = data[x][x]
-        else:
-            self.DEVs_prev_states[self.person.names[person_settings]][x] = data[x][x]
-
     def handle_offline(self, x, settings):
 
         if self.DEVs_prev_states[settings][x] == 'Offline':
