@@ -6,3 +6,4 @@ The data gathering is based on requests and selenium libraries. The notification
 The PyMonitoring runs on Raspberry Pi where physical pins are used for configuration. Additionally, there are ESP32 devices which monitor activity of Raspberry Pi and raise alarm if there is none for certain time.
 
 Unfortunately, as the program is specific to the place, network and devices it won’t work elsewhere, so the code is only for demonstration.
+End user experience can be found in in jpg_examples folder.
