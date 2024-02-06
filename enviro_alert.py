@@ -63,7 +63,7 @@ class Alert:
         self.driver.implicitly_wait(10)
         self.driver.set_page_load_timeout(15)
 
-        # Navigate to the login page !Seems it might work without that below (#TODO test on that)
+        # Navigate to the login page !Seems it might work without that below
         self.driver.get(URL_ENVI)
         time.sleep(1)
 
@@ -182,4 +182,3 @@ class Alert:
                     data = {dev: 'Offline'}
 
         return data
-

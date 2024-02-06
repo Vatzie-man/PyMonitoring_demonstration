@@ -40,13 +40,18 @@ class OutOfTolerance:
 
     @staticmethod
     def current_DEVs_state(data):
-        # TODO while program start (first_program_run) if any device if Offline it causes crash
+        def there_is_no_status(dev):
+            try:
+                return data[dev][dev]
+            except KeyError:
+                return 'Offline'
+
         return {
             # states
-            'ACH1': data['ACH1']['ACH1'],
-            'ACH2': data['ACH2']['ACH2'],
-            'ACH3': data['ACH3']['ACH3'],
-            'ACH4': data['ACH4']['ACH4'],
+            'ACH1': there_is_no_status('ACH1'),
+            'ACH2': there_is_no_status('ACH2'),
+            'ACH3': there_is_no_status('ACH3'),
+            'ACH4': there_is_no_status('ACH4'),
             'PCW1 H0': 'Online',
             'PCW1 H1': 'Online',
             'PCW2 H1': 'Online',
@@ -97,39 +102,27 @@ class OutOfTolerance:
                 time.sleep(1)
 
     def check_temp(self, x, settings, data, state):
-        # x, self.person.names[person_settings], data, state = 'inlet'
 
         if state == 'ACH_inlet':
             z = y = x
-            settings_key = '_inlet'
-            data_key = 'Inlet Temp'
-            message_key = "temp wejściowa"
+            settings_key, data_key, message_key = '_inlet', 'Inlet Temp', "temp wejściowa"
 
         if state == 'ACH_outlet':
             z = y = x
-            settings_key = '_outlet'
-            data_key = 'Outlet Temp'
-            message_key = "temp wyjściowa"
+            settings_key, data_key, message_key = '_outlet', 'Outlet Temp', "temp wyjściowa"
 
         if state == 'PCW_return':
             z = y = '_'.join(x.split(' '))
-            settings_key = '_return'
-            data_key = 'Return Air'
-            message_key = "Return"
+            settings_key, data_key, message_key = '_return',  'Return Air', "Return"
 
         if state == 'CDUs_t1_min':
-            y = x[0:3] + 's'
-            z = x
-            settings_key = '_t1_min'
-            data_key = 't1'
-            message_key = "Niska Temp 1"
+            y, z = x[0:3]+'s', x
+            settings_key, data_key, message_key = '_t1_min', 't1', "Niska Temp 1"
 
         if state == 'CDUs_t1_max':
-            y = x[0:3] + 's'
-            z = x
-            settings_key = '_t1_max'
-            data_key = 't1'
-            message_key = "Wysoka Temp 1"
+            y, z = x[0:3]+'s', x
+            settings_key, data_key, message_key = '_t1_max', 't1', "Wysoka Temp 1"
+
 
         if self.settings[y + settings_key] < float(data[x][data_key]):
             if self.DEVs_prev_states[settings][z + settings_key]:
@@ -145,7 +138,6 @@ class OutOfTolerance:
             self.DEVs_prev_states[settings][y] = 'Online'
 
     def check_status(self, x, settings, data):
-        # x, self.person.names[person_settings], data
 
         if (self.DEVs_prev_states[settings][x] in ('Warning On', 'Local ON')) != (data[x][x] in ('Warning On', 'Local ON')):
 
@@ -167,6 +159,7 @@ class OutOfTolerance:
             return message
 
     def check(self, data, person_settings, notifications, whatsapp, zabbix_online):
+
         send_alert_sets = [notifications, whatsapp, person_settings]
         if self.first_program_run:
 
