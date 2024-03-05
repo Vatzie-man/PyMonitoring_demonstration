@@ -3,7 +3,7 @@ import sys
 import time
 import logging
 
-from settings import secrets_main, only_OO, wait_time, plain_mode
+from settings import secrets_main, wait_time, plain_mode
 
 from dict_for_fermion import Dict_For_Fermion
 from enviro_alert import Alert
@@ -11,6 +11,7 @@ from make_MM_str import MM_Str
 from mattermost import Mattermost
 from out_of_tolerance import OutOfTolerance
 from zabbix import Zabbix
+from power_monitoring import PowerMonitoringAlert
 
 info_logger = logging.getLogger(__name__)
 info_logger.setLevel(logging.INFO)
@@ -22,6 +23,8 @@ info_logger.addHandler(handler_info)
 # watcher post_id
 WATCHER_POST_DESTINATION = secrets_main['watcher']
 
+if sys.platform != 'win32':
+    from readGPIO import get_switches_gpio
 
 def get_platform():
     if sys.platform == 'win32':
@@ -47,15 +50,13 @@ class Executor:
             self.fermion_watcher = fermion_watcher
             self.notifications = notifications
             self.whatsapp = whatsapp
-            self.users = [1]  # these numbers are listening persons
+            self.users = 1  # these numbers are listening persons
 
             info_logger.info('notifications: %s, whatsapp: %s, fermion_watcher: %s', notifications, whatsapp, fermion_watcher)
 
         else:
-            from PyMonitoring.readGPIO import get_switches_gpio
-            self.notifications, self.whatsapp, self.fermion_watcher = get_switches_gpio()
             self.main_post_destination = secrets_main['which_platform_RPi']
-            self.users = [8]
+            self.users = 8
 
             info_logger.info('Running')
 
@@ -65,63 +66,61 @@ class Executor:
         self.mm = Mattermost()
         self.mm_str = MM_Str()
         self.fermion = Dict_For_Fermion()
+        self.powermonitoring = PowerMonitoringAlert()
 
     def run(self):
 
         devs = dict.fromkeys(Executor.LST_OF_DEVS)
 
         while True:
-            out_zabbix = self.zabbix.request()
+            out_powermonitoring = self.powermonitoring.get_power_monitoring_alerts()
+            time.sleep(2) # delay: maybe webdriver will work better
             out_enviro = self.alert.get_pcw_ach(Executor.LST_OF_DEVS)
+            out_zabbix = self.zabbix.request()
             zabbix_online = out_zabbix['status']
 
             if zabbix_online == True:
                 data = {
                     'Listening': '',
                     'Ares': out_zabbix['data']['Total power usage'],
+                    'power_monitoring': out_powermonitoring,
                     'CDU1': out_zabbix['data']['CDU1'],
                     'CDU2': out_zabbix['data']['CDU2'],
-                    'CDU3': out_zabbix['data']['CDU3'],
-
+                    'CDU3': out_zabbix['data']['CDU3']
                 }
+
                 for k in devs.keys():
                     data[k] = out_enviro[k]
 
             else:
                 data = {
                     'Listening': '',
+                    'power_monitoring': out_powermonitoring
                 }
+
                 for k in devs.keys():
                     data[k] = out_enviro[k]
 
-            persons_str = ''
-            for i, person_settings in enumerate(self.users):
-                out = self.oft.check(data, person_settings, self.notifications, self.whatsapp, zabbix_online)
+            if self.platform == 'RPi':
+                self.notifications, self.whatsapp, self.fermion_watcher = get_switches_gpio()
 
-                try:
-                    # if there is only one user which gather settings only once the time.sleep is not needed
-                    if only_OO or len(self.users) == 1:
-                        persons_str += out
-                    else:
-                        persons_str += out
-                        time.sleep(wait_time)
-                except Exception:
-                    time.sleep(wait_time)
-                    pass
+            # that is for only one listener
+            notifications = self.oft.check(data, self.users, self.notifications, self.whatsapp, zabbix_online)
+            # time.sleep(wait_time)
 
+            # plain mode - is the mode where user don't see data; only check are made in the background
             if not plain_mode:
 
-                # indicates who is online listening to alerts or if only_OO==True indicates if notification and whatsapp
-                data['Listening'] = persons_str
+                data['Listening'] = notifications
 
                 message, t = self.mm_str.make_mm_str(data)
                 self.mm.mm_edit(message, self.main_post_destination)
 
                 # the ESP32_fermion_screen
                 if self.fermion_watcher and (json_fermion := self.fermion.dict_for_fermion(data)):
-                    time.sleep(wait_time * 4)
+                    time.sleep(wait_time * 1)
                     self.mm.mm_edit(json.dumps(json_fermion), WATCHER_POST_DESTINATION)
                 else:
-                    time.sleep(wait_time * 4)
+                    time.sleep(wait_time * 1)
             else:
                 time.sleep(30)

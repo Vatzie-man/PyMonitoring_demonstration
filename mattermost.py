@@ -16,49 +16,54 @@ MATTERMOST_URL = secrets_mm['mm_url']
 API_TOKEN = secrets_mm['mm_pymonitoring_apikey']
 
 
+def retry(times=10, delay=60):
+    def decorator(func):
+        def f(*args, **kwargs):
+            attempt = 0
+            while attempt < times:
+
+                response = func(*args, **kwargs)
+                if response:
+                    return response
+                else:
+                    print("Connection error thrown when attempting to run %s, attempt " % func)
+                    attempt += 1
+                    time.sleep(delay)
+
+        return f
+
+    return decorator
+
+
 class Mattermost:
 
     def __init__(self):
-        self.max_retries = 6
-        self.retry_delay = 60
+        pass
 
+    @retry()
     def mm_edit_helper_request(self, endpoint, headers, updated_post):
 
-        for retry_attempt in range(self.max_retries):
-            try:
-                response = requests.put(endpoint, json=updated_post, headers=headers, timeout=10)
-                if response.status_code == 200:
-                    return response
-
-            # very bad practice to catch all exceptions and don't even print/log what happened
-            # comment: in that case it doesn't matter cos there is nothing I can do about that; that is only for info purpose
-            except Exception:
-                info_logger.info('%s', 'Unable to edit post')
-            time.sleep(self.retry_delay)
+        response = requests.put(endpoint, json=updated_post, headers=headers, timeout=10)
+        if response.status_code == 200:
+            return response
 
         return 0
 
+    @retry()
     def mm_get_post_helper_request(self, endpoint, headers):
-        for retry_attempt in range(self.max_retries):
-            try:
-                response = requests.get(endpoint, headers=headers)
-                if response.status_code == 200:
-                    return response
-            except Exception:
-                info_logger.info('%s', 'Unable to get post')
-            time.sleep(self.retry_delay)
+
+        response = requests.get(endpoint, headers=headers)
+        if response.status_code == 200:
+            return response
 
         return 0
 
+    @retry()
     def mm_post_helper_request(self, endpoint, headers, message_payload):
-        for retry_attempt in range(self.max_retries):
-            try:
-                response = requests.post(endpoint, headers=headers, data=json.dumps(message_payload))
-                if response.status_code == 201:
-                    return response
-            except Exception:
-                info_logger.info('%s', 'Unable to post')
-            time.sleep(self.retry_delay)
+
+        response = requests.post(endpoint, headers=headers, data=json.dumps(message_payload))
+        if response.status_code == 201:
+            return response
 
         return 0
 
@@ -91,13 +96,11 @@ class Mattermost:
 
         response = self.mm_get_post_helper_request(endpoint, headers)
 
-        # Check if the request was successful.
         if response.status_code == 200:
-            # Parse the JSON response to get the post details.
             post = response.json()
             message = post.get('message')
         else:
-            raise ValueError()
+            return 503  # 503: Service Unavailable
 
         return message
 
@@ -132,6 +135,6 @@ class Mattermost:
                 out_dict.update({pair[0].strip('\''): float(pair[1].strip())})
 
         except ValueError:
-            out_dict = {'Powiadomienia': 0}
+            out_dict = {'Powiadomienia': 503}
 
         return out_dict

@@ -182,3 +182,4 @@ class Alert:
                     data = {dev: 'Offline'}
 
         return data
+
