@@ -15,6 +15,7 @@ handler_info = logging.StreamHandler()
 handler_info.setFormatter(formatter_info)
 info_logger.addHandler(handler_info)
 
+
 # TODO
 # vatzie_post_to_edit = secrets_main['vatzie_post_to_edit']
 
@@ -40,6 +41,7 @@ class OutOfTolerance():
 
         self.mm = Mattermost()
         self.whatsapp = WhatsApp()
+        self.person = Person
 
         self.user_settings: dict = None
         self.first_program_run: bool = True
@@ -184,42 +186,44 @@ class OutOfTolerance():
             message = f'{dev}: Offline.'
             return message
 
-    def check(self, data: dict, user: int, notifications: str, whatsapp: str, zabbix_online: bool) -> str:
+    def do_connection_checks(self):
+        pass
+        # make checks at start if notifications are working
+        # if sys.platform == 'win32':
+        #     requests.post(self.whatsapp.destination + "Test_Vatzie" + self.whatsapp.apikey)
+        #     time.sleep(1)
+        #     requests.post(self.whatsapp.destination_test + "Test_DTP" + self.whatsapp.apikey_test)
+        #     # time.sleep(1)
+        #     # self.mm.mm_edit("message", vatzie_post_to_edit) - i must provide Vatzie tooken
 
-        person = Person(
+    def first_run(self, user):
+        self.person = Person(
             dict((int(k), v) for k, v in secrets_oft['personons'].items())[user],
             dict((int(k), v) for k, v in secrets_oft['dict_person_settings'].items())[user][0],
             dict((int(k), v) for k, v in secrets_oft['dict_person_settings'].items())[user][1],
-
         )
 
-        send_alert_settings = [notifications, whatsapp, person.channel_id, person.name]
+        if data_read_once_at_start:  # settings are read only once at first: notifications and whatsapp are managed by switches on RPi
+            self.user_settings = self.mm.make_dict_from_mm(self.person.settings)
+            print(f"{self.person.name}: Powiadomienia: {bool(self.user_settings['Powiadomienia'])}, "
+                  f"WhatsApp: {bool(self.user_settings['Plus WhatsApp'])}" + '\n')
+
+    def check(self, data: dict, user: int, notifications: str, whatsapp: str, zabbix_online: bool) -> str:
 
         if self.first_program_run:
-
-            if data_read_once_at_start:  # settings are read only once at first: notifications and whatsapp are managed by switches on RPi
-                self.user_settings = self.mm.make_dict_from_mm(person.settings)
-                print(f"{person.name}: Powiadomienia: {bool(self.user_settings['Powiadomienia'])}, WhatsApp: {bool(self.user_settings['Plus WhatsApp'])}" + '\n')
-
-            # make checks at start if notifications are working
-            # if sys.platform == 'win32':
-            #     requests.post(self.whatsapp.destination + "Test_Vatzie" + self.whatsapp.apikey)
-            #     time.sleep(1)
-            #     requests.post(self.whatsapp.destination_test + "Test_DTP" + self.whatsapp.apikey_test)
-            #     # time.sleep(1)
-            #     # self.mm.mm_edit("message", vatzie_post_to_edit) - i must provide Vatzie tooken
-
+            self.first_run(user)
+            self.do_connection_checks()
             self.set_first_program_run(data)
 
+        send_alert_settings = [notifications, whatsapp, self.person.channel_id, self.person.name]
+
         if not data_read_once_at_start:  # settings will be read each time from user settings and switches must simulate always on state (notifications and whatsapp)
-            self.user_settings = self.mm.make_dict_from_mm(person.settings)
+            self.user_settings = self.mm.make_dict_from_mm(self.person.settings)
             notifications = True
             whatsapp = True
 
-        channel_id = person.channel_id  # destination of a channel if any parameters are out of tolerance
-
         if self.user_settings['Powiadomienia'] == 0:
-            self.devaices_prev_state[person.name] = self.devaices_curr_state(data)
+            self.devaices_prev_state[self.person.name] = self.devaices_curr_state(data)
             return 'Brak powiadomień.'
 
         if self.user_settings['Powiadomienia'] == 503:
@@ -230,12 +234,11 @@ class OutOfTolerance():
         if data['power_monitoring']['status'] == True:  # is there data from PM
 
             for alert in (data['power_monitoring'].keys() - {'status'}):
-                # value = data['power_monitoring'][alert]
-                message = self.check_PM_alerts(alert, person.name, data)
+                message = self.check_PM_alerts(alert, self.person.name, data)
                 self.send_alerts(message, send_alert_settings)
 
-        if data['power_monitoring']['status'] == False and self.devaices_prev_state[person.name]['PowerMonitoring_status'] == True:
-            self.devaices_prev_state[person.name]['PowerMonitoring_status'] == False
+        if data['power_monitoring']['status'] == False and self.devaices_prev_state[self.person.name]['PowerMonitoring_status'] == True:
+            self.devaices_prev_state[self.person.name]['PowerMonitoring_status'] == False
             message = f"Brak danych z PowerMonitoring."
             self.send_alerts(message, send_alert_settings)
 
@@ -244,14 +247,14 @@ class OutOfTolerance():
 
             for device in [k for k in data.keys() if k[0:3] == 'CDU']:
                 for state in ('CDUs_t1_min', 'CDUs_t1_max'):
-                    message = self.check_temp(device, person.name, data, state=state)
+                    message = self.check_temp(device, self.person.name, data, state=state)
                     self.send_alerts(message, send_alert_settings)
 
-            self.devaices_prev_state[person.name]['Zabbix'] = 1
+            self.devaices_prev_state[self.person.name]['Zabbix'] = 1
 
         # if there is no data from zabbix in two request on the raw then alert message will be send; though single occurances of no data is frequnent
-        if zabbix_online == False and self.devaices_prev_state[person.name]['Zabbix'] == True:
-            self.devaices_prev_state[person.name]['Zabbix'] = False
+        if zabbix_online == False and self.devaices_prev_state[self.person.name]['Zabbix'] == True:
+            self.devaices_prev_state[self.person.name]['Zabbix'] = False
             message = f"Brak danych z Zabbix."
             self.send_alerts(message, send_alert_settings)
 
@@ -259,29 +262,29 @@ class OutOfTolerance():
         for device in [k for k in data.keys() if k[0:3] == 'ACH']:
             try:
                 for state in ('ACH_inlet', 'ACH_outlet'):
-                    message = self.check_temp(device, person.name, data, state=state)
+                    message = self.check_temp(device, self.person.name, data, state=state)
                     self.send_alerts(message, send_alert_settings)
 
-                message = self.check_status(device, person.name, data)
+                message = self.check_status(device, self.person.name, data)
                 self.send_alerts(message, send_alert_settings)
 
             except Exception:
-                message = self.handle_offline(device, person.name)
+                message = self.handle_offline(device, self.person.name)
                 self.send_alerts(message, send_alert_settings)
 
         # PCWs operations and temp comparisons
         for device in [k for k in data.keys() if k[0:3] == 'PCW']:
 
             try:
-                message = self.check_temp(device, person.name, data, state='PCW_return')
+                message = self.check_temp(device, self.person.name, data, state='PCW_return')
                 self.send_alerts(message, send_alert_settings)
 
             except Exception:
-                message = self.handle_offline(device, person.name)
+                message = self.handle_offline(device, self.person.name)
                 self.send_alerts(message, send_alert_settings)
 
         if data_read_once_at_start:
             return ('notifications' if (notifications and self.user_settings['Powiadomienia']) else '') + (
                 ', whatsapp' if (notifications and whatsapp and self.user_settings['Plus WhatsApp']) else '')
         else:
-            return person.name.upper() + ' ' if self.user_settings['Plus WhatsApp'] else person.name + ' '
+            return self.person.name.upper() + ' ' if self.user_settings['Plus WhatsApp'] else self.person.name + ' '
