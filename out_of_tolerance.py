@@ -1,20 +1,11 @@
 from dataclasses import dataclass, field
 import requests
 import typing
-import logging
 import time
 import sys
 
 from mattermost import Mattermost
 from settings import secrets_oft, secrets_main, data_read_once_at_start
-
-info_logger = logging.getLogger(__name__)
-info_logger.setLevel(logging.INFO)
-formatter_info = logging.Formatter('%(name)s >> %(message)s', datefmt='%Y-%m-%d %H:%M')
-handler_info = logging.StreamHandler()
-handler_info.setFormatter(formatter_info)
-info_logger.addHandler(handler_info)
-
 
 # TODO
 # vatzie_post_to_edit = secrets_main['vatzie_post_to_edit']
@@ -41,6 +32,7 @@ class OutOfTolerance():
 
         self.mm = Mattermost()
         self.whatsapp = WhatsApp()
+
         self.person = Person
 
         self.user_settings: dict = None
@@ -207,6 +199,7 @@ class OutOfTolerance():
             self.user_settings = self.mm.make_dict_from_mm(self.person.settings)
             print(f"{self.person.name}: Powiadomienia: {bool(self.user_settings['Powiadomienia'])}, "
                   f"WhatsApp: {bool(self.user_settings['Plus WhatsApp'])}" + '\n')
+
 
     def check(self, data: dict, user: int, notifications: str, whatsapp: str, zabbix_online: bool) -> str:
 

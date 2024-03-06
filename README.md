@@ -7,3 +7,5 @@ The PyMonitoring runs on Raspberry Pi where physical pins are used for basic con
 
 Unfortunately, as the program is specific to the place, network and devices it won’t work elsewhere, so the code is only for demonstration.
 End user experience can be found in in jpg_examples folder.
+
+Project works fine, but there is still things to improve as I am constantly larning. 

@@ -50,7 +50,7 @@ class PowerMonitoringAlert:
             self.driver = webdriver.Chrome(service=chrome_binary_path, options=chrome_options)
 
         self.driver.implicitly_wait(10)
-        self.driver.set_page_load_timeout(15)
+        self.driver.set_page_load_timeout(10)
 
         self.driver.get(URL_ENVI)
 

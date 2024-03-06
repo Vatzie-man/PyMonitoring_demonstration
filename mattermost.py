@@ -1,16 +1,8 @@
 import requests
 import json
 import time
-import logging
 
 from settings import secrets_mm
-
-info_logger = logging.getLogger(__name__)
-info_logger.setLevel(logging.INFO)
-formatter_info = logging.Formatter('%(asctime)s >> %(message)s', datefmt='%Y-%m-%d %H:%M')
-handler_info = logging.StreamHandler()
-handler_info.setFormatter(formatter_info)
-info_logger.addHandler(handler_info)
 
 MATTERMOST_URL = secrets_mm['mm_url']
 API_TOKEN = secrets_mm['mm_pymonitoring_apikey']

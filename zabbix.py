@@ -1,17 +1,9 @@
 import time
 import requests
-import logging
 
 from pyzabbix import ZabbixAPI
 from collections import defaultdict
 from settings import secrets_zabbix
-
-info_logger = logging.getLogger(__name__)
-info_logger.setLevel(logging.INFO)
-formatter_info = logging.Formatter('%(asctime)s >> %(message)s', datefmt='%Y-%m-%d %H:%M')
-handler_info = logging.StreamHandler()
-handler_info.setFormatter(formatter_info)
-info_logger.addHandler(handler_info)
 
 ZABBIX_URL = secrets_zabbix['zabbix_url']
 ZABBIX_USER = secrets_zabbix['zabbix_user']

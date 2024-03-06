@@ -1,19 +1,11 @@
 import sys
 import json
 import time
-import logging
 
 from settings import secrets_enviro
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import WebDriverException
-
-info_logger = logging.getLogger(__name__)
-info_logger.setLevel(logging.INFO)
-formatter_info = logging.Formatter('%(asctime)s >> %(message)s', datefmt='%Y-%m-%d %H:%M')
-handler_info = logging.StreamHandler()
-handler_info.setFormatter(formatter_info)
-info_logger.addHandler(handler_info)
 
 URL_ENVI = secrets_enviro['url_envi']
 USERNAME = secrets_enviro['username']
@@ -61,7 +53,7 @@ class Alert:
             self.driver = webdriver.Chrome(service=chrome_binary_path)
 
         self.driver.implicitly_wait(10)
-        self.driver.set_page_load_timeout(15)
+        self.driver.set_page_load_timeout(10)
 
         # Navigate to the login page !Seems it might work without that below
         self.driver.get(URL_ENVI)
@@ -143,7 +135,7 @@ class Alert:
             return data
 
         except Exception:
-            info_logger.info('%s', 'EnviroAlert data error')
+            print('%s', 'EnviroAlert data error')
 
             return {
                 dev: self.DEVs_prev_states[dev],

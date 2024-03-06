@@ -1,7 +1,6 @@
 import json
 import sys
 import time
-import logging
 
 from settings import secrets_main, wait_time, plain_mode
 
@@ -15,13 +14,6 @@ from power_monitoring import PowerMonitoringAlert
 
 if sys.platform != 'win32':
     from readGPIO import get_switches_gpio
-
-info_logger = logging.getLogger(__name__)
-info_logger.setLevel(logging.INFO)
-formatter_info = logging.Formatter('%(asctime)s - %(name)s >> %(message)s', datefmt='%Y-%m-%d %H:%M')
-handler_info = logging.StreamHandler()
-handler_info.setFormatter(formatter_info)
-info_logger.addHandler(handler_info)
 
 # watcher post_id
 WATCHER_POST_DESTINATION = secrets_main['watcher']
@@ -54,13 +46,11 @@ class Executor:
             self.whatsapp = whatsapp
             self.users = 1  # these numbers are listening persons
 
-            info_logger.info('notifications: %s, whatsapp: %s, fermion_watcher: %s', notifications, whatsapp, fermion_watcher)
+            print(f"notifications: {self.notifications}, whatsapp: {self.whatsapp}, fermion_watcher: {self.fermion_watcher}")
 
         else:
             self.main_post_destination = secrets_main['which_platform_RPi']
             self.users = 8
-
-            info_logger.info('Running')
 
         self.alert = Alert()
         self.zabbix = Zabbix()
@@ -88,6 +78,7 @@ class Executor:
             time.sleep(30)
 
     def make_data_dict(self, out_powermonitoring: dict, out_enviro: dict, out_zabbix: dict) -> dict:
+
         if out_zabbix['status'] == True:
             data = {
                 'Listening': '',
