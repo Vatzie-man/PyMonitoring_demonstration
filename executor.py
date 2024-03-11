@@ -36,6 +36,8 @@ class Executor:
             platform = get_platform()
         self.platform = platform
 
+        self.alarm_for_watcher = False
+
         # Set attributes depending on platform
         # on RPi switches are physical buttons; on windows these buttons are predefined
         if self.platform == 'WIN':
@@ -65,7 +67,8 @@ class Executor:
 
             data['Listening'] = notifications
 
-            message, t = self.mm_str.make_mm_str(data)
+
+            message, t = self.mm_str.make_mm_str(data, self.fermion_watcher, self.alarm_for_watcher)
             self.mm.mm_edit(message, self.main_post_destination)
 
             # the ESP32_fermion_screen
@@ -102,7 +105,7 @@ class Executor:
         return data
 
     def run(self):
-
+        print(f"{' '.join(time.asctime().split()[1:4])} > Running..")
         while True:
             out_powermonitoring = self.powermonitoring.get_power_monitoring_alerts()
             time.sleep(2)  # delay: maybe webdriver will work better
@@ -114,6 +117,6 @@ class Executor:
 
             data = self.make_data_dict(out_powermonitoring, out_enviro, out_zabbix)
 
-            notifications = self.oft.check(data, self.users, self.notifications, self.whatsapp, out_zabbix['status'])
+            notifications, self.alarm_for_watcher = self.oft.check(data, self.users, self.notifications, self.whatsapp, out_zabbix['status'])
 
             self.user_interface(plain_mode, notifications, data)

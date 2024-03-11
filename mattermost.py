@@ -18,7 +18,7 @@ def retry(times=10, delay=60):
                 if response:
                     return response
                 else:
-                    print("Connection error thrown when attempting to run %s, attempt " % func)
+                    print(f"{' '.join(time.asctime().split()[1:4])} > Connection error thrown when attempting to run {func} attempt")
                     attempt += 1
                     time.sleep(delay)
 

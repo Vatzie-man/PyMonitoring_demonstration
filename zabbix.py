@@ -67,7 +67,7 @@ class Zabbix:
             try:
                 return self.zapi.do_request(self.method, self.params)
             except Exception as e:
-                info_logger.info('%s', 'Unable to pull Zabbix data')
+                print(f"{' '.join(time.asctime().split()[1:4])} > Unable to pull Zabbix data")
                 self.login()
                 time.sleep(Zabbix.retry_delay)
 

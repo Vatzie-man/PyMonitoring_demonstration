@@ -10,18 +10,17 @@ class MM_Str:
     def which_dot(s: str) -> str:
 
         stats = {
-                 # 'Warning On': ':warning_green_circle_w:',
                  'Standby': ':large_yellow_circle:',
                  'Warning On': ':large_green_circle:',
                  'Local ON': ':large_green_circle:',
                  'Local OFF': ':red_circle:',
-                 'Alarm ON': ':a:',
+                 'Alarm ON': ':red_circle:',
                  'Power Failure': ':red_circle:'
                  }
 
         return stats.get(s, 'Stan:' + s)
 
-    def make_mm_str(self, data: dict) -> str:
+    def make_mm_str(self, data: dict,  watcher_extra: bool, watcher_alarm: bool) -> str:
 
         info = ''
 
@@ -85,7 +84,9 @@ class MM_Str:
 
         t = time.asctime().split()
 
-        info = (('Listening: ' + data['Listening']).ljust(40, ' ') + '\n'
-                + f"### {t[0]} {t[3]} {t[2]} {t[1]} {t[4]}" + info)
+        # (first libe below) if extra options for WATCHER are ON and there is Alert the '!' in Listening will be a flag for esp32 to produce sound
+        info = (( ('Listening! 'if (watcher_extra and watcher_alarm) else 'Listening: ')
+                 + data['Listening']).ljust(40, ' ') + '\n'
+                 + f"### {t[0]} {t[3]} {t[2]} {t[1]} {t[4]}" + info)
 
         return info, t[3]

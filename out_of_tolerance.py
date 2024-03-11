@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Union
 import requests
 import typing
 import time
@@ -7,7 +8,7 @@ import sys
 from mattermost import Mattermost
 from settings import secrets_oft, secrets_main, data_read_once_at_start
 
-# TODO
+
 # vatzie_post_to_edit = secrets_main['vatzie_post_to_edit']
 
 @dataclass
@@ -35,8 +36,12 @@ class OutOfTolerance():
 
         self.person = Person
 
+        self.data: dict = None
         self.user_settings: dict = None
+        self.watcher_alarm: bool = False
         self.first_program_run: bool = True
+        self.zabbix_online: bool = False
+        self.send_alert_settings: list = None
         self.devaices_prev_state: dict = {'wk': None, 'oo': None}
 
     @staticmethod
@@ -86,18 +91,22 @@ class OutOfTolerance():
             'PCW1_H1_return': False,
             'PCW2_H1_return': False,
             'PCW_UPS+1_return': False,
-            'PCW_UPS-1_return': False
+            'PCW_UPS-1_return': False,
         }
 
-    def set_first_program_run(self, data: dict) -> None:
+    def set_first_program_run(self) -> None:
+        """Assign default devices state at the begining"""
         for user in self.devaices_prev_state.keys():
-            self.devaices_prev_state[user] = self.devaices_curr_state(data)
+            self.devaices_prev_state[user] = self.devaices_curr_state(self.data)
         self.first_program_run = False
 
-    def send_alerts(self, message: str, send_alert_settings: list) -> None:
+    def send_alerts(self, message: str) -> None:
+        """Send alerts via different chanels"""
         if message:
-            notifications, whatsapp, channel_id, name = send_alert_settings
+            notifications, whatsapp, channel_id, name = self.send_alert_settings
             if notifications:
+
+                self.watcher_alarm = True
 
                 self.mm.mm_post(f' {message}', channel_id)
 
@@ -108,9 +117,8 @@ class OutOfTolerance():
                             + f': {message}' + self.whatsapp.apikey)
                 time.sleep(1)
 
-    # key maker helps crete keys for multi temp chceck in one function
     def key_maker(self, x: str, state: str) -> tuple:
-
+        """Creates keys pairs to combine different devices chceck in one function"""
         if state == 'ACH_inlet':
             return x, x, x, '_inlet', 'Inlet Temp', "temp wejściowa"
 
@@ -126,69 +134,70 @@ class OutOfTolerance():
         if state == 'CDUs_t1_max':
             return x, f'{x[0:3]}s', x, '_t1_max', 't1', "Wysoka Temp 1"
 
-    def check_temp(self, x: str, user: str, data: dict, state: str):
-
+    def check_temp(self, x: str, state: str):
+        """Checks temps of devices"""
         x, y, z, settings_key, data_key, message_key = self.key_maker(x, state)
 
-        if self.user_settings[y + settings_key] < float(data[x][data_key]):
+        if self.user_settings[y + settings_key] < float(self.data[x][data_key]):
 
-            if self.devaices_prev_state[user][z + settings_key]:
-                value = float(data[x][data_key])
+            if self.devaices_prev_state[self.person.name][z + settings_key]:
+                value = float(self.data[x][data_key])
                 message = f"{x} {message_key}: {value}C"
-                self.devaices_prev_state[user][z + settings_key] = False
+                self.devaices_prev_state[self.person.name][z + settings_key] = False
                 return message
 
         else:
-            self.devaices_prev_state[user][z + settings_key] = True
+            self.devaices_prev_state[self.person.name][z + settings_key] = True
             return None
 
         if x[0:3] == 'PCW':
-            self.devaices_prev_state[user][y] = 'Online'
+            self.devaices_prev_state[self.person.name][y] = 'Online'
 
-    def check_PM_alerts(self, alert: str, user: str, data: dict):
-
+    def check_PM_alerts(self, alert: str) -> Union[str, None]:
+        """Checks whatever ther is any alarm from PowerMonitoring"""
         message_keys = {'high_priority': 'PowerMonitoring High', 'mid_priority': 'PowerMonitoring Medium', 'low_priority': 'PowerMonitoring Low'}
 
-        if int(data['power_monitoring'][alert]) > self.devaices_prev_state[user][alert]:
-            message = f"{message_keys[alert]}: {data['power_monitoring'][alert]}"
-            self.devaices_prev_state[user][alert] = int(data['power_monitoring'][alert])
+        if int(self.data['power_monitoring'][alert]) > self.devaices_prev_state[self.person.name][alert]:
+            message = f"{message_keys[alert]}: {self.data['power_monitoring'][alert]}"
+            self.devaices_prev_state[self.person.name][alert] = int(self.data['power_monitoring'][alert])
             return message
         else:
-            self.devaices_prev_state[user][alert] = int(data['power_monitoring'][alert])
+            self.devaices_prev_state[self.person.name][alert] = int(self.data['power_monitoring'][alert])
             return None
 
-    def check_status(self, dev: str, user: str, data: dict):
+    def check_status(self, dev: str) -> Union[str, None]:
+        """Checks the devices state: ON/OFF/Stadby"""
+        if (self.devaices_prev_state[self.person.name][dev] in ('Warning On', 'Local ON')) != (self.data[dev][dev] in ('Warning On', 'Local ON')):
 
-        if (self.devaices_prev_state[user][dev] in ('Warning On', 'Local ON')) != (data[dev][dev] in ('Warning On', 'Local ON')):
-
-            value = 'On' if data[dev][dev] in ('Warning On', 'Local ON') else data[dev][dev]
+            value = 'On' if self.data[dev][dev] in ('Warning On', 'Local ON') else self.data[dev][dev]
             message = f"{dev}: {value}"
-            self.devaices_prev_state[user][dev] = data[dev][dev]
+            self.devaices_prev_state[self.person.name][dev] = self.data[dev][dev]
             return message
         else:
-            self.devaices_prev_state[user][dev] = data[dev][dev]
+            self.devaices_prev_state[self.person.name][dev] = self.data[dev][dev]
             return None
 
-    def handle_offline(self, dev: str, user: str):
-
-        if self.devaices_prev_state[user][dev] == 'Offline':
+    def handle_offline(self, dev: str) -> Union[str, None]:
+        """This function is called if an Exception has been rised during other checks"""
+        if self.devaices_prev_state[self.person.name][dev] == 'Offline':
             return None
         else:
-            self.devaices_prev_state[user][dev] = 'Offline'
+            self.devaices_prev_state[self.person.name][dev] = 'Offline'
             message = f'{dev}: Offline.'
             return message
 
-    def do_connection_checks(self):
+    def do_connection_checks(self) -> None:
+        """Trigers test alarms, so the user is asured that alarms works"""
         pass
-        # make checks at start if notifications are working
         # if sys.platform == 'win32':
         #     requests.post(self.whatsapp.destination + "Test_Vatzie" + self.whatsapp.apikey)
         #     time.sleep(1)
         #     requests.post(self.whatsapp.destination_test + "Test_DTP" + self.whatsapp.apikey_test)
-        #     # time.sleep(1)
-        #     # self.mm.mm_edit("message", vatzie_post_to_edit) - i must provide Vatzie tooken
+        #     time.sleep(1)
+        #     self.mm.mm_edit("message", vatzie_post_to_edit)
 
-    def first_run(self, user):
+    def first_run(self, user) -> None:
+        """Assigns data to user"""
         self.person = Person(
             dict((int(k), v) for k, v in secrets_oft['personons'].items())[user],
             dict((int(k), v) for k, v in secrets_oft['dict_person_settings'].items())[user][0],
@@ -200,84 +209,96 @@ class OutOfTolerance():
             print(f"{self.person.name}: Powiadomienia: {bool(self.user_settings['Powiadomienia'])}, "
                   f"WhatsApp: {bool(self.user_settings['Plus WhatsApp'])}" + '\n')
 
+    def PowerMonitoringCheck(self) -> None:
+        """ PowerMonitoring alarm check """
+        if self.data['power_monitoring']['status'] == True:  # is there data from PM
 
-    def check(self, data: dict, user: int, notifications: str, whatsapp: str, zabbix_online: bool) -> str:
+            for alert in (self.data['power_monitoring'].keys() - {'status'}):
+                message = self.check_PM_alerts(alert)
+                self.send_alerts(message)
+
+        if self.data['power_monitoring']['status'] == False and self.devaices_prev_state[self.person.name]['PowerMonitoring_status'] == True:
+            self.devaices_prev_state[self.person.name]['PowerMonitoring_status'] == False
+            message = f"Brak danych z PowerMonitoring."
+            self.send_alerts(message)
+
+    def ZabbixCheck(self) -> None:
+        """CDUs operations and temp comparisons"""
+        if self.zabbix_online == True:  # is there data from Zabbix
+
+            for device in [k for k in self.data.keys() if k[0:3] == 'CDU']:
+                for state in ('CDUs_t1_min', 'CDUs_t1_max'):
+                    message = self.check_temp(device, state=state)
+                    self.send_alerts(message)
+
+            self.devaices_prev_state[self.person.name]['Zabbix'] = 1
+
+        # if there is no data from zabbix in two request on the raw then alert message will be send; though single occurances of no data is frequnent
+        if self.zabbix_online == False and self.devaices_prev_state[self.person.name]['Zabbix'] == True:
+            self.devaices_prev_state[self.person.name]['Zabbix'] = False
+            message = f"Brak danych z Zabbix."
+            self.send_alerts(message)
+
+    def ACHsCheck(self) -> None:
+        """ACH's operations and temp comparisons"""
+        for device in [k for k in self.data.keys() if k[0:3] == 'ACH']:
+            try:
+                for state in ('ACH_inlet', 'ACH_outlet'):
+                    message = self.check_temp(device, state=state)
+                    self.send_alerts(message)
+
+                message = self.check_status(device)
+                self.send_alerts(message)
+
+            except Exception:
+                message = self.handle_offline(device)
+                self.send_alerts(message)
+
+    def PCWsCheck(self) -> None:
+        """PCWs operations and temp comparisons"""
+        for device in [k for k in self.data.keys() if k[0:3] == 'PCW']:
+
+            try:
+                message = self.check_temp(device, state='PCW_return')
+                self.send_alerts(message)
+
+            except Exception:
+                message = self.handle_offline(device)
+                self.send_alerts(message)
+
+    def check(self, data: dict, user: int, notifications: str, whatsapp: str, zabbix_online: bool) -> Union[str, bool]:
+        """Main function in this file: checks devicase parameters against desired parameters"""
+        self.data = data
+        self.zabbix_online = zabbix_online
 
         if self.first_program_run:
             self.first_run(user)
             self.do_connection_checks()
-            self.set_first_program_run(data)
-
-        send_alert_settings = [notifications, whatsapp, self.person.channel_id, self.person.name]
+            self.set_first_program_run()
 
         if not data_read_once_at_start:  # settings will be read each time from user settings and switches must simulate always on state (notifications and whatsapp)
             self.user_settings = self.mm.make_dict_from_mm(self.person.settings)
             notifications = True
             whatsapp = True
 
-        if self.user_settings['Powiadomienia'] == 0:
-            self.devaices_prev_state[self.person.name] = self.devaices_curr_state(data)
-            return 'Brak powiadomień.'
+            if self.user_settings['Powiadomienia'] == 0:
+                self.devaices_prev_state[self.person.name] = self.devaices_curr_state(self.data)
+                return ('Brak powiadomień.', False)
 
-        if self.user_settings['Powiadomienia'] == 503:
-            # here "devaices_prev_state = devaisces_curr_state" is omited cos during server down something might change
-            return 'Data not awelable.'
+            if self.user_settings['Powiadomienia'] == 503:
+                # here "devaices_prev_state = devaisces_curr_state" is omited cos during server down something might change
+                return ('Data not awelable.', True)
 
-        # PowerMonitoring alarm check
-        if data['power_monitoring']['status'] == True:  # is there data from PM
+        self.send_alert_settings = [notifications, whatsapp, self.person.channel_id, self.person.name]
+        self.watcher_alarm = False
 
-            for alert in (data['power_monitoring'].keys() - {'status'}):
-                message = self.check_PM_alerts(alert, self.person.name, data)
-                self.send_alerts(message, send_alert_settings)
-
-        if data['power_monitoring']['status'] == False and self.devaices_prev_state[self.person.name]['PowerMonitoring_status'] == True:
-            self.devaices_prev_state[self.person.name]['PowerMonitoring_status'] == False
-            message = f"Brak danych z PowerMonitoring."
-            self.send_alerts(message, send_alert_settings)
-
-        # CDUs operations and temp comparisons
-        if zabbix_online == True:  # is there data from Zabbix
-
-            for device in [k for k in data.keys() if k[0:3] == 'CDU']:
-                for state in ('CDUs_t1_min', 'CDUs_t1_max'):
-                    message = self.check_temp(device, self.person.name, data, state=state)
-                    self.send_alerts(message, send_alert_settings)
-
-            self.devaices_prev_state[self.person.name]['Zabbix'] = 1
-
-        # if there is no data from zabbix in two request on the raw then alert message will be send; though single occurances of no data is frequnent
-        if zabbix_online == False and self.devaices_prev_state[self.person.name]['Zabbix'] == True:
-            self.devaices_prev_state[self.person.name]['Zabbix'] = False
-            message = f"Brak danych z Zabbix."
-            self.send_alerts(message, send_alert_settings)
-
-        # ACH's operations and temp comparisons
-        for device in [k for k in data.keys() if k[0:3] == 'ACH']:
-            try:
-                for state in ('ACH_inlet', 'ACH_outlet'):
-                    message = self.check_temp(device, self.person.name, data, state=state)
-                    self.send_alerts(message, send_alert_settings)
-
-                message = self.check_status(device, self.person.name, data)
-                self.send_alerts(message, send_alert_settings)
-
-            except Exception:
-                message = self.handle_offline(device, self.person.name)
-                self.send_alerts(message, send_alert_settings)
-
-        # PCWs operations and temp comparisons
-        for device in [k for k in data.keys() if k[0:3] == 'PCW']:
-
-            try:
-                message = self.check_temp(device, self.person.name, data, state='PCW_return')
-                self.send_alerts(message, send_alert_settings)
-
-            except Exception:
-                message = self.handle_offline(device, self.person.name)
-                self.send_alerts(message, send_alert_settings)
+        self.PowerMonitoringCheck()
+        self.ZabbixCheck()
+        self.ACHsCheck()
+        self.PCWsCheck()
 
         if data_read_once_at_start:
-            return ('notifications' if (notifications and self.user_settings['Powiadomienia']) else '') + (
-                ', whatsapp' if (notifications and whatsapp and self.user_settings['Plus WhatsApp']) else '')
+            return (('notifications' if (notifications and self.user_settings['Powiadomienia']) else '') + (
+                ', whatsapp' if (notifications and whatsapp and self.user_settings['Plus WhatsApp']) else ''), self.watcher_alarm)
         else:
-            return self.person.name.upper() + ' ' if self.user_settings['Plus WhatsApp'] else self.person.name + ' '
+            return (self.person.name.upper() + ' ' if self.user_settings['Plus WhatsApp'] else self.person.name + ' ', self.watcher_alarm)

@@ -135,7 +135,7 @@ class Alert:
             return data
 
         except Exception:
-            print('%s', 'EnviroAlert data error')
+            print(f"{' '.join(time.asctime().split()[1:4])} > EnviroAlert data error")
 
             return {
                 dev: self.DEVs_prev_states[dev],
