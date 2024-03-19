@@ -15,7 +15,6 @@ from power_monitoring import PowerMonitoringAlert
 if sys.platform != 'win32':
     from readGPIO import get_switches_gpio
 
-# watcher post_id
 WATCHER_POST_DESTINATION = secrets_main['watcher']
 
 
@@ -32,11 +31,16 @@ class Executor:
 
     def __init__(self, platform=None):
         if platform is None:
-            # Detect platform
             platform = get_platform()
-        self.platform = platform
 
-        self.alarm_for_watcher = False
+        self.platform: str = platform
+        self.alarm_for_watcher: bool = False
+        self.notifications: str = ''
+
+        self.data: dict = None
+        self.out_powermonitoring: dict = None
+        self.out_enviro: dict = None
+        self.out_zabbix: dict = None
 
         # Set attributes depending on platform
         # on RPi switches are physical buttons; on windows these buttons are predefined
@@ -46,13 +50,13 @@ class Executor:
             self.fermion_watcher = fermion_watcher
             self.notifications = notifications
             self.whatsapp = whatsapp
-            self.users = 1  # these numbers are listening persons
+            self.users = 'wk'
 
             print(f"notifications: {self.notifications}, whatsapp: {self.whatsapp}, fermion_watcher: {self.fermion_watcher}")
 
         else:
             self.main_post_destination = secrets_main['which_platform_RPi']
-            self.users = 8
+            self.users = 'oo'
 
         self.alert = Alert()
         self.zabbix = Zabbix()
@@ -62,17 +66,17 @@ class Executor:
         self.fermion = Dict_For_Fermion()
         self.powermonitoring = PowerMonitoringAlert()
 
-    def user_interface(self, plain_mode: bool, notifications: str, data: dict) -> None:
+    def user_interface(self) -> None:
+        '''Graphical presentation'''
         if not plain_mode:
 
-            data['Listening'] = notifications
+            self.data['Listening'] = self.notifications
 
-
-            message, t = self.mm_str.make_mm_str(data, self.fermion_watcher, self.alarm_for_watcher)
+            message, t = self.mm_str.make_mm_str(self.data, self.fermion_watcher, self.alarm_for_watcher)
             self.mm.mm_edit(message, self.main_post_destination)
 
             # the ESP32_fermion_screen
-            if self.fermion_watcher and (json_fermion := self.fermion.dict_for_fermion(data)):
+            if self.fermion_watcher and (json_fermion := self.fermion.dict_for_fermion(self.data)):
                 time.sleep(wait_time * 3)
                 self.mm.mm_edit(json.dumps(json_fermion), WATCHER_POST_DESTINATION)
             else:
@@ -80,43 +84,42 @@ class Executor:
         else:
             time.sleep(30)
 
-    def make_data_dict(self, out_powermonitoring: dict, out_enviro: dict, out_zabbix: dict) -> dict:
-
-        if out_zabbix['status'] == True:
-            data = {
+    def make_data_dict(self) -> None:
+        '''Create dict which is passed to out_of_tolerance check'''
+        if self.out_zabbix['status'] == True:
+            self.data = {
                 'Listening': '',
-                'power_monitoring': out_powermonitoring,
+                'power_monitoring': self.out_powermonitoring,
 
-                'Ares': out_zabbix['data']['Total power usage'],
-                'CDU1': out_zabbix['data']['CDU1'],
-                'CDU2': out_zabbix['data']['CDU2'],
-                'CDU3': out_zabbix['data']['CDU3']
+                'Ares': self.out_zabbix['data']['Total power usage'],
+                'CDU1': self.out_zabbix['data']['CDU1'],
+                'CDU2': self.out_zabbix['data']['CDU2'],
+                'CDU3': self.out_zabbix['data']['CDU3']
             }
 
         else:
-            data = {
+            self.data = {
                 'Listening': '',
-                'power_monitoring': out_powermonitoring
+                'power_monitoring': self.out_powermonitoring
             }
         # add to data all key-value pairs from out_enviro; these might change
         for k in Executor.enviro_devs.keys():
-            data[k] = out_enviro[k]
-
-        return data
+            self.data[k] = self.out_enviro[k]
 
     def run(self):
         print(f"{' '.join(time.asctime().split()[1:4])} > Running..")
+
         while True:
-            out_powermonitoring = self.powermonitoring.get_power_monitoring_alerts()
-            time.sleep(2)  # delay: maybe webdriver will work better
-            out_enviro = self.alert.get_pcw_ach(Executor.LST_OF_DEVS)
-            out_zabbix = self.zabbix.request()
+            self.out_powermonitoring = self.powermonitoring.get_power_monitoring_alerts()
+            time.sleep(2)  # delay for webdrivers objects; lack of it caused ocasional crash
+            self.out_enviro = self.alert.get_pcw_ach(Executor.LST_OF_DEVS)
+            self.out_zabbix = self.zabbix.request()
 
             if self.platform == 'RPi':
                 self.notifications, self.whatsapp, self.fermion_watcher = get_switches_gpio()
 
-            data = self.make_data_dict(out_powermonitoring, out_enviro, out_zabbix)
+            self.make_data_dict()
 
-            notifications, self.alarm_for_watcher = self.oft.check(data, self.users, self.notifications, self.whatsapp, out_zabbix['status'])
+            self.notifications, self.alarm_for_watcher = self.oft.check(self.data, self.notifications, self.whatsapp, self.users, self.out_zabbix['status'])
 
-            self.user_interface(plain_mode, notifications, data)
+            self.user_interface()

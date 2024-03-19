@@ -36,9 +36,9 @@ class MM_Str:
 
             if k[0:3] == 'CDU':
                 info += (
-                            f"**{k}**: T1:   {float(v['t1'])}C "
-                            f"T2:   {float(v['t2'])}C "
-                            f"T3:   {float(v['t3'])}C   "
+                            f"**{k}**: T1: {float(v['t1'])}C  "
+                            f"T2: {float(v['t2'])}C  "
+                            f"T3: {float(v['t3'])}C  "
                             f"Pump: {str(int(v['pumpspeed']))}%"
                         ) + '\n'
 

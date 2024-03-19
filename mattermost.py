@@ -8,7 +8,7 @@ MATTERMOST_URL = secrets_mm['mm_url']
 API_TOKEN = secrets_mm['mm_pymonitoring_apikey']
 
 
-def retry(times=10, delay=60):
+def retry(times=20, delay=30):
     def decorator(func):
         def f(*args, **kwargs):
             attempt = 0
@@ -18,7 +18,7 @@ def retry(times=10, delay=60):
                 if response:
                     return response
                 else:
-                    print(f"{' '.join(time.asctime().split()[1:4])} > Connection error thrown when attempting to run {func} attempt")
+                    print(f"{' '.join(time.asctime().split()[1:4])} > Error running {func}.")
                     attempt += 1
                     time.sleep(delay)
 
@@ -35,32 +35,38 @@ class Mattermost:
     @retry()
     def mm_edit_helper_request(self, endpoint, headers, updated_post):
 
-        response = requests.put(endpoint, json=updated_post, headers=headers, timeout=10)
-        if response.status_code == 200:
-            return response
-
-        return 0
+        try:
+            response = requests.put(endpoint, json=updated_post, headers=headers, timeout=10)
+            if response.status_code == 200:
+                return response
+            return 0
+        except Exception:
+            return 0
 
     @retry()
     def mm_get_post_helper_request(self, endpoint, headers):
 
-        response = requests.get(endpoint, headers=headers)
-        if response.status_code == 200:
-            return response
-
-        return 0
+        try:
+            response = requests.get(endpoint, headers=headers)
+            if response.status_code == 200:
+                return response
+            return 0
+        except Exception:
+            return 0
 
     @retry()
     def mm_post_helper_request(self, endpoint, headers, message_payload):
 
-        response = requests.post(endpoint, headers=headers, data=json.dumps(message_payload))
-        if response.status_code == 201:
-            return response
+        try:
+            response = requests.post(endpoint, headers=headers, data=json.dumps(message_payload))
+            if response.status_code == 201:
+                return response
+            return 0
+        except Exception:
+            return 0
 
-        return 0
-
-    def mm_edit(self, message, post_id, MATTERMOST_URL=MATTERMOST_URL, API_TOKEN=API_TOKEN):
-        # Create a dictionary with the new post text
+    def mm_edit(self, message, post_id, API_TOKEN=API_TOKEN, MATTERMOST_URL=MATTERMOST_URL):
+        '''Create a dictionary with the new post text'''
         updated_post = {
             'id': post_id,
             'message': message
@@ -78,6 +84,7 @@ class Mattermost:
         self.mm_edit_helper_request(endpoint, headers, updated_post)
 
     def mm_get_post(self, post_id, MATTERMOST_URL=MATTERMOST_URL, API_TOKEN=API_TOKEN):
+        '''Fetch post'''
         headers = {
             "Authorization": f"Bearer {API_TOKEN}",
             'Content-Type': 'application/json',
@@ -97,7 +104,7 @@ class Mattermost:
         return message
 
     def mm_post(self, message, channel_id, MATTERMOST_URL=MATTERMOST_URL, API_TOKEN=API_TOKEN):
-        # Create the headers with the authentication token
+        '''Create the headers with the authentication token'''
         headers = {
             'Authorization': f'Bearer {API_TOKEN}',
             'Content-Type': 'application/json',
@@ -115,6 +122,7 @@ class Mattermost:
         self.mm_post_helper_request(endpoint, headers, message_payload)
 
     def make_dict_from_mm(self, post_id):
+        '''Makes dict from fetched text for settings in out_of_tolerance'''
         try:
             post = self.mm_get_post(post_id)
 
@@ -126,7 +134,7 @@ class Mattermost:
             for pair in lst:
                 out_dict.update({pair[0].strip('\''): float(pair[1].strip())})
 
-        except ValueError:
+        except Exception:
             out_dict = {'Powiadomienia': 503}
 
         return out_dict

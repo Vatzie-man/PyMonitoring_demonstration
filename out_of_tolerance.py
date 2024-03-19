@@ -6,18 +6,13 @@ import time
 import sys
 
 from mattermost import Mattermost
-from settings import secrets_oft, secrets_main, data_read_once_at_start
+from settings import secrets_oft, secrets_main, data_read_once_at_start, secrets_mm
 
-
-# vatzie_post_to_edit = secrets_main['vatzie_post_to_edit']
 
 @dataclass
 class WhatsApp:
     destination: str = secrets_oft['call_me_bot_url']
     apikey: str = secrets_oft['cal_me_bot_apikey']
-
-    destination_test: str = secrets_oft['call_me_bot_url_dtp_test']
-    apikey_test: str = secrets_oft['cal_me_bot_apikey_dtp_test']
 
 
 @dataclass
@@ -186,22 +181,12 @@ class OutOfTolerance():
             message = f'{dev}: Offline.'
             return message
 
-    def do_connection_checks(self) -> None:
-        """Trigers test alarms, so the user is asured that alarms works"""
-        pass
-        # if sys.platform == 'win32':
-        #     requests.post(self.whatsapp.destination + "Test_Vatzie" + self.whatsapp.apikey)
-        #     time.sleep(1)
-        #     requests.post(self.whatsapp.destination_test + "Test_DTP" + self.whatsapp.apikey_test)
-        #     time.sleep(1)
-        #     self.mm.mm_edit("message", vatzie_post_to_edit)
-
-    def first_run(self, user) -> None:
+    def first_run(self, user: str) -> None:
         """Assigns data to user"""
         self.person = Person(
-            dict((int(k), v) for k, v in secrets_oft['personons'].items())[user],
-            dict((int(k), v) for k, v in secrets_oft['dict_person_settings'].items())[user][0],
-            dict((int(k), v) for k, v in secrets_oft['dict_person_settings'].items())[user][1],
+            user,
+            secrets_oft['person_settings'][user][0],
+            secrets_oft['person_settings'][user][1]
         )
 
         if data_read_once_at_start:  # settings are read only once at first: notifications and whatsapp are managed by switches on RPi
@@ -266,14 +251,13 @@ class OutOfTolerance():
                 message = self.handle_offline(device)
                 self.send_alerts(message)
 
-    def check(self, data: dict, user: int, notifications: str, whatsapp: str, zabbix_online: bool) -> Union[str, bool]:
+    def check(self, data: dict, notifications: str, whatsapp: str, person: str, zabbix_online: bool) -> Union[str, bool]:
         """Main function in this file: checks devicase parameters against desired parameters"""
         self.data = data
         self.zabbix_online = zabbix_online
 
         if self.first_program_run:
-            self.first_run(user)
-            self.do_connection_checks()
+            self.first_run(person)
             self.set_first_program_run()
 
         if not data_read_once_at_start:  # settings will be read each time from user settings and switches must simulate always on state (notifications and whatsapp)
@@ -287,7 +271,7 @@ class OutOfTolerance():
 
             if self.user_settings['Powiadomienia'] == 503:
                 # here "devaices_prev_state = devaisces_curr_state" is omited cos during server down something might change
-                return ('Data not awelable.', True)
+                return ('Problem with MM settings.', True)
 
         self.send_alert_settings = [notifications, whatsapp, self.person.channel_id, self.person.name]
         self.watcher_alarm = False

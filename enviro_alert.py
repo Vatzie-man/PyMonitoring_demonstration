@@ -13,6 +13,7 @@ PASSWORD = secrets_enviro['password']
 
 
 def _get_chrome_options():
+    '''Setup chrome driver'''
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_experimental_option('prefs', {
         'credentials_enable_service': True,
@@ -70,21 +71,13 @@ class Alert:
         login_button.click()
         time.sleep(2)
 
-    def get_pcw_ach(self, lst_of_devs, dict_of_dev=None):
-        if dict_of_dev is None:
-            dict_of_dev = Alert.DICT_OF_DEV
-
-        data = dict()
-        # dev - is a http page where the data is pull from
-        for dev in lst_of_devs:
-            data.update({dev: self.get_devices(dev, dict_of_dev, self.driver)})
-        return data
-
     def device_type(self, dev):
+        '''Strips full dev name to it's type name'''
         return dev[0:3]
 
     @staticmethod
     def convert_str(s):
+        '''Proces str from http page'''
         count = 6
         while 1:
             try:
@@ -95,6 +88,7 @@ class Alert:
         return out
 
     def pcw(self, dev, page_source):
+        '''Fetch PCW devices'''
         try:
             data = [tuple(page_source.split(';')[x].split('=')) for x in range(1, 7)]
 
@@ -116,6 +110,7 @@ class Alert:
             }
 
     def ach(self, page_source, dev):
+        '''Fetch ACH devises'''
         try:
             data = json.loads(page_source[131:-20])
             # if the key is not in unit_status_parms to catch that rare Key
@@ -147,6 +142,16 @@ class Alert:
                 'Freecooling': 0
             }
 
+    def get_pcw_ach(self, lst_of_devs, dict_of_dev=None):
+        '''Fetch devices data'''
+        if dict_of_dev is None:
+            dict_of_dev = Alert.DICT_OF_DEV
+
+        data = dict()
+        for dev in lst_of_devs:  # dev - http page
+            data.update({dev: self.get_devices(dev, dict_of_dev, self.driver)})
+        return data
+
     def get_devices(self, dev, dict_of_dev, driver):
         data = ''
 
@@ -160,7 +165,7 @@ class Alert:
             elif dev_type == 'ACH':
                 data = self.ach(page_source=page_source, dev=dev)
 
-        # when the server is down it indicates another place where data can be obtained
+        # when the server is down return below
         except WebDriverException as e:
             if "ERR_CONNECTION_TIMED_OUT" in str(e):
                 if dev[0:3] == 'PCW':
@@ -170,8 +175,7 @@ class Alert:
                         'RH': ''
                     }
                 else:
-                    # if there is not any data for ACH devices; the Offline status is assigned
+                    # if there is not any data for ACH devices Offline status is assigned
                     data = {dev: 'Offline'}
 
         return data
-

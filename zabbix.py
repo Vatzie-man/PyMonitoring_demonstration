@@ -68,8 +68,8 @@ class Zabbix:
                 return self.zapi.do_request(self.method, self.params)
             except Exception as e:
                 print(f"{' '.join(time.asctime().split()[1:4])} > Unable to pull Zabbix data")
-                self.login()
                 time.sleep(Zabbix.retry_delay)
+                self.login()
 
         return None
 
