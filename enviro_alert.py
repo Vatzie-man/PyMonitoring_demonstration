@@ -120,6 +120,7 @@ class Alert:
                 dev: Alert.UNIT_STATUS_PARAMS.get(int(*data['values'][11]['value']), other),
                 'Inlet Temp': float(*data['values'][0]['value']) / 10,
                 'Outlet Temp': float(*data['values'][1]['value']) / 10,
+                'Ambient': float(*data['values'][3]['value']) / 10,
                 'Pumps': int(*data['values'][5]['value']),
                 'Compressors': int(*data['values'][6]['value']),
                 'Fans': int(*data['values'][7]['value']),
@@ -130,7 +131,7 @@ class Alert:
             return data
 
         except Exception:
-            print(f"{' '.join(time.asctime().split()[1:4])} > EnviroAlert data error")
+            # print(f"{' '.join(time.asctime().split()[1:4])} > EnviroAlert data error")
 
             return {
                 dev: self.DEVs_prev_states[dev],
@@ -179,3 +180,6 @@ class Alert:
                     data = {dev: 'Offline'}
 
         return data
+
+# o = Alert()
+# print(o.get_pcw_ach(['ACH1', 'ACH2']))
