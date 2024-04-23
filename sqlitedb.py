@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from settings import data_base
 
 
+
 @dataclass
 class Project:
     id: int
