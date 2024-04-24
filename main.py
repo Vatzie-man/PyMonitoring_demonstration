@@ -27,7 +27,7 @@ def get_platform():
     return 'RPi'
 
 
-class Options():
+class Options:
     '''Basic seteups on the go'''
     def __init__(self):
         self.current_options_settings: list = []
