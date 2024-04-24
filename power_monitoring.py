@@ -70,7 +70,7 @@ class PowerMonitoringAlert:
     def extract_data(self, page_source):
 
         try:
-            data = json.loads(page_source[131:-20])['AlarmCounts']
+            data = json.loads(page_source[99:-64])['AlarmCounts']
 
             data = {
                 'status': True,
@@ -86,12 +86,17 @@ class PowerMonitoringAlert:
 
     def get_power_monitoring_alerts(self):
 
-        self.driver.get(URL_DATA)
-        page_source = self.driver.page_source
+        try:
+            self.driver.get(URL_DATA)
+            page_source = self.driver.page_source
 
-        data = self.extract_data(page_source=page_source)
+            data = self.extract_data(page_source=page_source)
+        except WebDriverException:
+            data = {'status': False, 'high_priority': 0, 'mid_priority': 0, 'low_priority': 0}
 
         return data
 
+# o = PowerMonitoringAlert()
+# print(o.get_power_monitoring_alerts())
 
 

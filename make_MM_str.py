@@ -55,7 +55,7 @@ class MM_Str:
                             + (f", **Free**" if str(v['Freecooling']) == '1' else '') + '\n')
 
             except Exception:
-                '''when there is a lack of communication with the device'''
+                #when there is a lack of communication with the device
                 info += f"**{str(k)}** :white_circle: Offline" + '\n'
 
             try:
@@ -84,9 +84,9 @@ class MM_Str:
 
         t = time.asctime().split()
 
-        # (first libe below) if extra options for WATCHER are ON and there is Alert the '!' in Listening will be a flag for esp32 to produce sound
+        # (first line below) if extra options for WATCHER are ON and there is Alert the '!' in Listening will be a flag for esp32 to produce sound
         info = (( ('Listening! 'if (watcher_extra and watcher_alarm) else 'Listening: ')
                  + data['Listening']).ljust(40, ' ') + '\n'
                  + f"### {t[0]} {t[3]} {t[2]} {t[1]} {t[4]}" + info)
 
-        return info, t[3]
+        return info

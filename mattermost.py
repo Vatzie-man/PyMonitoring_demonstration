@@ -7,6 +7,15 @@ from settings import secrets_mm
 MATTERMOST_URL = secrets_mm['mm_url']
 API_TOKEN = secrets_mm['mm_pymonitoring_apikey']
 
+# MonitorChannels class:
+MM_ACCESS_TOKEN = secrets_mm["WK_ACCESS_TOKEN"]
+WACLAW_CHANNEL = secrets_mm["WACLAW_CHANNEL"]
+DTP_CHANNEL = secrets_mm["DTP_CHANNEL"]
+INFRASTRUKTURA_CHANNEL = secrets_mm["PYCHOWICE_INFRASTRUKTURA_CHANNEL"]
+
+# CHANNELS_IDs = {WACLAW_CHANNEL: None, DTP_CHANNEL: None, INFRASTRUKTURA_CHANNEL: None}
+CHANNELS_IDs = {DTP_CHANNEL: None, INFRASTRUKTURA_CHANNEL: None}
+CHANNELS_NAMES = {WACLAW_CHANNEL: 'WACLAW', DTP_CHANNEL: 'DTP', INFRASTRUKTURA_CHANNEL: 'INFRASTRUKTURA'}
 
 def retry(times=20, delay=30):
     def decorator(func):
@@ -28,7 +37,6 @@ def retry(times=20, delay=30):
 
 
 class Mattermost:
-
     def __init__(self):
         pass
 
@@ -95,7 +103,7 @@ class Mattermost:
 
         response = self.mm_get_post_helper_request(endpoint, headers)
 
-        if response.status_code == 200:
+        if response:
             post = response.json()
             message = post.get('message')
         else:
@@ -138,3 +146,78 @@ class Mattermost:
             out_dict = {'Powiadomienia': 503}
 
         return out_dict
+
+class MonitorChannels():
+    '''Monitors Mattermost channels for new messages'''
+    def __init__(self):
+
+        self.headers = {
+            "Authorization": f"Bearer {MM_ACCESS_TOKEN}",
+            'Content-Type': 'application/json',
+        }
+        self.first_program_run: bool = True
+
+    def set_first_program_run(self) -> None:
+        self.first_program_run = False
+
+    @retry()
+    def read_post_helper(self, url):
+        try:
+            response = requests.get(url, headers=self.headers)
+            if response.status_code == 200:
+                return response
+            return 0
+        except Exception:
+            return 0
+
+    @retry()
+    def new_messages_helper(self, url):
+        try:
+            response = requests.get(url, headers=self.headers)
+            if response.status_code == 200:
+                return response
+            return 0
+        except Exception:
+            return 0
+
+    def read_post(self, post_id):
+
+        url = f'{MATTERMOST_URL}/posts/{post_id}'
+
+        response = self.read_post_helper(url)
+
+        if response:
+            post = response.json()
+            message = post.get('message')
+            return message
+        else:
+            return "Can't read post."
+
+    def get_new_messages(self):
+        new_message = []
+        for k, v in CHANNELS_IDs.items():
+            url = f"{MATTERMOST_URL}/channels/{k}/posts"
+
+            response = self.new_messages_helper(url)
+
+            if response:
+                post = response.json()['order'][0]  # get newest post
+                time.sleep(1)
+                message = self.read_post(post)
+
+                if (v != message) and (message != ''):
+                    new_message.append(f"{CHANNELS_NAMES[k]}: {message}")
+                CHANNELS_IDs[k] = message
+            else:
+                return "Can't read channel."
+
+        if self.first_program_run:
+            self.set_first_program_run()
+            return []
+
+        else:
+            return new_message[0] if new_message else ''
+
+
+# out = MonitorChannels()
+# out.get_new_messages()
