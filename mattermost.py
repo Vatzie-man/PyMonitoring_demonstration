@@ -1,8 +1,9 @@
 import requests
 import json
 import time
+import functools
 
-from settings import secrets_mm
+from pym_settings import secrets_mm
 
 MATTERMOST_URL = secrets_mm['mm_url']
 API_TOKEN = secrets_mm['mm_pymonitoring_apikey']
@@ -17,30 +18,32 @@ INFRASTRUKTURA_CHANNEL = secrets_mm["PYCHOWICE_INFRASTRUKTURA_CHANNEL"]
 CHANNELS_IDs = {DTP_CHANNEL: None, INFRASTRUKTURA_CHANNEL: None}
 CHANNELS_NAMES = {WACLAW_CHANNEL: 'WACLAW', DTP_CHANNEL: 'DTP', INFRASTRUKTURA_CHANNEL: 'INFRASTRUKTURA'}
 
-def retry(times=20, delay=30):
-    def decorator(func):
-        def f(*args, **kwargs):
-            attempt = 0
-            while attempt < times:
 
-                response = func(*args, **kwargs)
-                if response:
-                    return response
-                else:
-                    print(f"{' '.join(time.asctime().split()[1:4])} > Error running {func}.")
-                    attempt += 1
-                    time.sleep(delay)
+def retry(func, times=20, delay=30):
+    @functools.wraps(func)
+    def wraper(*args, **kwargs):
 
-        return f
+        attempt = 0
+        while attempt < times:
 
-    return decorator
+            response = func(*args, **kwargs)
+            if response:
+                return response
+            else:
+                print(f"{' '.join(time.asctime().split()[1:4])} > Error running {func.__name__}.")
+                attempt += 1
+                time.sleep(delay)
+
+        return response
+
+    return wraper
 
 
 class Mattermost:
     def __init__(self):
         pass
 
-    @retry()
+    @retry
     def mm_edit_helper_request(self, endpoint, headers, updated_post):
 
         try:
@@ -51,7 +54,7 @@ class Mattermost:
         except Exception:
             return 0
 
-    @retry()
+    @retry
     def mm_get_post_helper_request(self, endpoint, headers):
 
         try:
@@ -62,7 +65,7 @@ class Mattermost:
         except Exception:
             return 0
 
-    @retry()
+    @retry
     def mm_post_helper_request(self, endpoint, headers, message_payload):
 
         try:
@@ -147,8 +150,10 @@ class Mattermost:
 
         return out_dict
 
+
 class MonitorChannels():
     '''Monitors Mattermost channels for new messages'''
+
     def __init__(self):
 
         self.headers = {
@@ -160,7 +165,7 @@ class MonitorChannels():
     def set_first_program_run(self) -> None:
         self.first_program_run = False
 
-    @retry()
+    @retry
     def read_post_helper(self, url):
         try:
             response = requests.get(url, headers=self.headers)
@@ -170,7 +175,7 @@ class MonitorChannels():
         except Exception:
             return 0
 
-    @retry()
+    @retry
     def new_messages_helper(self, url):
         try:
             response = requests.get(url, headers=self.headers)
@@ -217,7 +222,6 @@ class MonitorChannels():
 
         else:
             return new_message[0] if new_message else ''
-
 
 # out = MonitorChannels()
 # out.get_new_messages()
