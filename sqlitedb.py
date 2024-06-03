@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from _pym_settings import data_base
 
-
 @dataclass
 class Project:
     id: int
