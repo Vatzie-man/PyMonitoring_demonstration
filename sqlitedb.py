@@ -2,8 +2,7 @@ import contextlib
 import sqlite3
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from settings import data_base
-
+from _pym_settings import data_base
 
 
 @dataclass
@@ -85,200 +84,229 @@ class PostRepository(Repository):
             cursor.execute("DELETE FROM pages_project WHERE id=?", (id,))
 
 
-class DjangoDataBase():
+class DjangoDataBase:
     def __init__(self):
-        self.PCW_H1 = str()
-        self.data = dict()
-        self.dict_for_db = dict()
+        self.dict_for_db = None
+        self.data = None
+        self.PCW_H1: str = ""
+        self.data: dict
+        self.dict_for_db: dict
 
     def dict_for_database(self) -> None:
 
-        self.PCW_H1 = 'PCW1 H1' if self.data['PCW1 H1']['PCW1 H1'] == 'on' else 'PCW2 H1'
+        try:
+            self.PCW_H1 = "PCW1 H1" if self.data["PCW1 H1"]["PCW1 H1"] == "on" else "PCW2 H1"
+        except Exception:
+            self.PCW_H1 = "PCW2 H1"
 
         data_out = dict()
 
         data_out["Time"] = self.data["Time"]
         try:
-            data_out["PM"] = (f"High: {self.data['power_monitoring']['high_priority']} Medium: {self.data['power_monitoring']['mid_priority']} "
-                              f"Low: {self.data['power_monitoring']['low_priority']} | Ares: {int(float(self.data['Ares']) / 1000)} kW")
-        except KeyError:
-            data_out["PM"] = f''
+            data_out["PM"] = (f"High: {self.data["power_monitoring"]["high_priority"]} Medium: {self.data["power_monitoring"]["mid_priority"]} "
+                              f"Low: {self.data["power_monitoring"]["low_priority"]} | Ares: {int(float(self.data["Ares"]) / 1000)} kW")
+        except Exception:
+            data_out["PM"] = f""
 
         try:
-            data_out[
-                "CDU1"] = f'T1: {self.data["CDU1"]["t1"]}C | T2: {self.data["CDU1"]["t2"]}C | T3: {self.data["CDU1"]["t3"]}C | Pump: {self.data["CDU1"]["pumpspeed"]}%'
-            data_out[
-                "CDU2"] = f'T1: {self.data["CDU2"]["t1"]}C | T2: {self.data["CDU2"]["t2"]}C | T3: {self.data["CDU2"]["t3"]}C | Pump: {self.data["CDU2"]["pumpspeed"]}%'
-            data_out[
-                "CDU3"] = f'T1: {self.data["CDU3"]["t1"]}C | T2: {self.data["CDU3"]["t2"]}C | T3: {self.data["CDU3"]["t3"]}C | Pump: {self.data["CDU3"]["pumpspeed"]}%'
-        except KeyError:
-            data_out["CDU1"] = f'No Zabbix data'
-            data_out["CDU2"] = f'No Zabbix data'
-            data_out["CDU3"] = f'No Zabbix data'
+            data_out["CDU1"] = \
+                (f"T1: {round(float(self.data["CDU1"]["t1"]), 1)}C | "
+                 f"T2: {round(float(self.data["CDU1"]["t2"]), 1)}C | "
+                 f"T3: {round(float(self.data["CDU1"]["t3"]), 1)}C | "
+                 f"Pump: {self.data["CDU1"]["pumpspeed"]}%")
+
+            data_out["CDU2"] = \
+                (f"T1: {round(float(self.data["CDU2"]["t1"]), 1)}C | "
+                 f"T2: {round(float(self.data["CDU2"]["t2"]), 1)}C | "
+                 f"T3: {round(float(self.data["CDU2"]["t3"]), 1)}C | "
+                 f"Pump: {self.data["CDU2"]["pumpspeed"]}%")
+
+            data_out["CDU3"] = \
+                (f"T1: {round(float(self.data["CDU3"]["t1"]), 1)}C | "
+                 f"T2: {round(float(self.data["CDU3"]["t2"]), 1)}C | "
+                 f"T3: {round(float(self.data["CDU3"]["t3"]), 1)}C | "
+                 f"Pump: {self.data["CDU3"]["pumpspeed"]}%")
+
+        except Exception:
+            data_out["CDU1"] = f"No Zabbix data"
+            data_out["CDU2"] = f"No Zabbix data"
+            data_out["CDU3"] = f"No Zabbix data"
 
         data_out["ACH2"] = (({"alert": self.data["ACH2"]["ACH2"],
-                              "data": f'Inlet: {self.data["ACH2"]["Inlet Temp"]}C Outlet: {self.data["ACH2"]["Outlet Temp"]}C'
-                                      + (' Pump ' if self.data["ACH2"]["Pumps"] else '')
-                                      + (' Compressors ' if self.data["ACH2"]["Compressors"] else '')
-                                      + (' Fans ' if self.data["ACH2"]["Fans"] else '')
-                                      + (' Freecooling ' if self.data["ACH2"]["Freecooling"] else '')}) if self.data["ach_overview"][
-                                                                                                               "ACH2"] != "no ACH connection" else
-
-                            ({"alert": 'Offline', "data": 'Offline'}))
+                              "data": f"Inlet: {self.data["ACH2"]["Inlet Temp"]}C "
+                                      f"Outlet: {self.data["ACH2"]["Outlet Temp"]}C"
+                                      + (" Pump " if self.data["ACH2"]["Pumps"] else "")
+                                      + (" Compressors " if self.data["ACH2"]["Compressors"] else "")
+                                      + (" Fans " if self.data["ACH2"]["Fans"] else "")
+                                      + (" Freecooling " if self.data["ACH2"]["Freecooling"] else "")})
+                            if self.data["ach_overview"]["ACH2"] != "no ACH connection"
+                            else ({"alert": "Offline", "data": "Offline"}))
 
         data_out["ACH4"] = (({"alert": self.data["ACH4"]["ACH4"],
-                              "data": f'Inlet: {self.data["ACH4"]["Inlet Temp"]}C Outlet: {self.data["ACH4"]["Outlet Temp"]}C'
-                                      + (' Pump ' if self.data["ACH4"]["Pumps"] else '')
-                                      + (' Compressors ' if self.data["ACH4"]["Compressors"] else '')
-                                      + (' Fans ' if self.data["ACH4"]["Fans"] else '')
-                                      + (' Freecooling ' if self.data["ACH4"]["Freecooling"] else '')}) if self.data["ach_overview"][
-                                                                                                               "ACH4"] != "no ACH connection" else
-
-                            ({"alert": 'Offline', "data": 'Offline'}))
+                              "data": f"Inlet: {self.data["ACH4"]["Inlet Temp"]}C "
+                                      f"Outlet: {self.data["ACH4"]["Outlet Temp"]}C"
+                                      + (" Pump " if self.data["ACH4"]["Pumps"] else "")
+                                      + (" Compressors " if self.data["ACH4"]["Compressors"] else "")
+                                      + (" Fans " if self.data["ACH4"]["Fans"] else "")
+                                      + (" Freecooling " if self.data["ACH4"]["Freecooling"] else "")})
+                            if self.data["ach_overview"]["ACH4"] != "no ACH connection"
+                            else ({"alert": "Offline", "data": "Offline"}))
 
         data_out["ACH3"] = (({"alert": self.data["ACH3"]["ACH3"],
-                              "data": f'Inlet: {self.data["ACH3"]["Inlet Temp"]}C Outlet: {self.data["ACH3"]["Outlet Temp"]}C'
-                                      + (' Pump ' if self.data["ACH3"]["Pumps"] else '')
-                                      + (' Compressors ' if self.data["ACH3"]["Compressors"] else '')
-                                      + (' Fans ' if self.data["ACH3"]["Fans"] else '')
-                                      + (' Freecooling ' if self.data["ACH3"]["Freecooling"] else '')}) if self.data["ach_overview"][
-                                                                                                               "ACH3"] != "no ACH connection" else
-
-                            ({"alert": 'Offline', "data": 'Offline'}))
+                              "data": f"Inlet: {self.data["ACH3"]["Inlet Temp"]}C "
+                                      f"Outlet: {self.data["ACH3"]["Outlet Temp"]}C"
+                                      + (" Pump " if self.data["ACH3"]["Pumps"] else "")
+                                      + (" Compressors " if self.data["ACH3"]["Compressors"] else "")
+                                      + (" Fans " if self.data["ACH3"]["Fans"] else "")
+                                      + (" Freecooling " if self.data["ACH3"]["Freecooling"] else "")})
+                            if self.data["ach_overview"]["ACH3"] != "no ACH connection"
+                            else ({"alert": "Offline", "data": "Offline"}))
 
         data_out["ACH1"] = (({"alert": self.data["ACH1"]["ACH1"],
-                              "data": f'Inlet: {self.data["ACH1"]["Inlet Temp"]}C Outlet: {self.data["ACH1"]["Outlet Temp"]}C'
-                                      + (' Pump ' if self.data["ACH1"]["Pumps"] else '')
-                                      + (' Compressors ' if self.data["ACH1"]["Compressors"] else '')
-                                      + (' Fans ' if self.data["ACH1"]["Fans"] else '')
-                                      + (' Freecooling ' if self.data["ACH1"]["Freecooling"] else '')}) if self.data["ach_overview"][
-                                                                                                               "ACH1"] != "no ACH connection" else
-
-                            ({"alert": 'Offline', "data": 'Offline'}))
+                              "data": f"Inlet: {self.data["ACH1"]["Inlet Temp"]}C "
+                                      f"Outlet: {self.data["ACH1"]["Outlet Temp"]}C"
+                                      + (" Pump " if self.data["ACH1"]["Pumps"] else "")
+                                      + (" Compressors " if self.data["ACH1"]["Compressors"] else "")
+                                      + (" Fans " if self.data["ACH1"]["Fans"] else "")
+                                      + (" Freecooling " if self.data["ACH1"]["Freecooling"] else "")})
+                            if self.data["ach_overview"]["ACH1"] != "no ACH connection"
+                            else ({"alert": "Offline", "data": "Offline"}))
 
         try:
-            data_out["PCW1 H0"] = (f"Supply: {self.data['PCW1 H0']['Supply Air']}C Return: {self.data['PCW1 H0']['Return Air']}C "
-                                   f"| RH: {int(self.data['PCW1 H0']['RH'])}% Fans: {int(self.data['PCW1 H0']['Fan Speed'])}% Cool: {int(self.data['PCW1 H0']['Cooling'])}%")
+            data_out["PCW1 H0"] = (f"Supply: {self.data["PCW1 H0"]["Supply Air"]}C "
+                                   f"Return: {self.data["PCW1 H0"]["Return Air"]}C | "
+                                   f"RH: {int(self.data["PCW1 H0"]["RH"])}% "
+                                   f"Fans: {int(self.data["PCW1 H0"]["Fan Speed"])}% "
+                                   f"Cool: {int(self.data["PCW1 H0"]["Cooling"])}%")
         except KeyError:
             data_out["PCW1 H0"] = f"Offline"
 
         try:
-            data_out[self.PCW_H1] = (f"Supply: {self.data[self.PCW_H1]['Supply Air']}C Return: {self.data[self.PCW_H1]['Return Air']}C "
-                                     f"| RH: {int(self.data[self.PCW_H1]['RH'])}% Fans: {int(self.data[self.PCW_H1]['Fan Speed'])}% Cool: {int(self.data[self.PCW_H1]['Cooling'])}%")
+            data_out[self.PCW_H1] = (f"Supply: {self.data[self.PCW_H1]["Supply Air"]}C "
+                                     f"Return: {self.data[self.PCW_H1]["Return Air"]}C | "
+                                     f"RH: {int(self.data[self.PCW_H1]["RH"])}% "
+                                     f"Fans: {int(self.data[self.PCW_H1]["Fan Speed"])}% "
+                                     f"Cool: {int(self.data[self.PCW_H1]["Cooling"])}%")
         except KeyError:
             data_out[self.PCW_H1] = f"Offline"
 
         try:
-            data_out["Po UPS.1"] = (f"Supply: {self.data['PCW UPS+1']['Supply Air']}C Return: {self.data['PCW UPS+1']['Return Air']}C "
-                                    f"| RH: {int(self.data['PCW UPS+1']['RH'])}% Fans: {int(self.data['PCW UPS+1']['Fan Speed'])}% Cool: {int(self.data['PCW UPS+1']['Cooling'])}%")
+            data_out["Po UPS.1"] = (f"Supply: {self.data["PCW UPS+1"]["Supply Air"]}C "
+                                    f"Return: {self.data["PCW UPS+1"]["Return Air"]}C | "
+                                    f"RH: {int(self.data["PCW UPS+1"]["RH"])}% "
+                                    f"Fans: {int(self.data["PCW UPS+1"]["Fan Speed"])}% "
+                                    f"Cool: {int(self.data["PCW UPS+1"]["Cooling"])}%")
         except KeyError:
             data_out["Po UPS.1"] = f"Offline"
 
         try:
-            data_out["Po UPS-1"] = (f"Supply: {self.data['PCW UPS-1']['Supply Air']}C Return: {self.data['PCW UPS-1']['Return Air']}C "
-                                    f"| RH: {int(self.data['PCW UPS-1']['RH'])}% Fans: {int(self.data['PCW UPS-1']['Fan Speed'])}% Cool: {int(self.data['PCW UPS-1']['Cooling'])}%")
+            data_out["Po UPS-1"] = (f"Supply: {self.data["PCW UPS-1"]["Supply Air"]}C "
+                                    f"Return: {self.data["PCW UPS-1"]["Return Air"]}C | "
+                                    f"RH: {int(self.data["PCW UPS-1"]["RH"])}% "
+                                    f"Fans: {int(self.data["PCW UPS-1"]["Fan Speed"])}% "
+                                    f"Cool: {int(self.data["PCW UPS-1"]["Cooling"])}%")
         except KeyError:
             data_out["Po UPS-1"] = f"Offline"
 
         try:
-            data_out['1_Time_ACH'] = f"{self.data['ach_overview']['ACH1']['Time']}"
-            data_out['1_Fan'] = f"{self.data['ach_overview']['ACH1']['Fan']}"
-            data_out['1_Compressor'] = f"{self.data['ach_overview']['ACH1']['Compressor']}"
-            data_out['1_Pump'] = f"{self.data['ach_overview']['ACH1']['Pump']}"
-            data_out['1_Temp and Free'] = f"{self.data['ach_overview']['ACH1']['Temp and Free']}"
-            data_out['1_Condensing Pressure'] = f"{self.data['ach_overview']['ACH1']['Condensing Pressure']}"
-            data_out['1_Evaporating Pressure'] = f"{self.data['ach_overview']['ACH1']['Evaporating Pressure']}"
-            data_out['1_Saturation Temp'] = f"{self.data['ach_overview']['ACH1']['Saturation Temp']}"
-            data_out['1_Super Heating'] = f"{self.data['ach_overview']['ACH1']['Super Heating']}"
-            data_out['1_Liquid Temp'] = f"{self.data['ach_overview']['ACH1']['Liquid Temp']}"
-            data_out['1_Sub-Cooling'] = f"{self.data['ach_overview']['ACH1']['Sub-Cooling']}"
+            data_out["1_Time_ACH"] = f"{self.data["ach_overview"]["ACH1"]["Time"]}"
+            data_out["1_Fan"] = f"{self.data["ach_overview"]["ACH1"]["Fan"]}"
+            data_out["1_Compressor"] = f"{self.data["ach_overview"]["ACH1"]["Compressor"]}"
+            data_out["1_Pump"] = f"{self.data["ach_overview"]["ACH1"]["Pump"]}"
+            data_out["1_Temp and Free"] = f"{self.data["ach_overview"]["ACH1"]["Temp and Free"]}"
+            data_out["1_Condensing Pressure"] = f"{self.data["ach_overview"]["ACH1"]["Condensing Pressure"]}"
+            data_out["1_Evaporating Pressure"] = f"{self.data["ach_overview"]["ACH1"]["Evaporating Pressure"]}"
+            data_out["1_Saturation Temp"] = f"{self.data["ach_overview"]["ACH1"]["Saturation Temp"]}"
+            data_out["1_Super Heating"] = f"{self.data["ach_overview"]["ACH1"]["Super Heating"]}"
+            data_out["1_Liquid Temp"] = f"{self.data["ach_overview"]["ACH1"]["Liquid Temp"]}"
+            data_out["1_Sub-Cooling"] = f"{self.data["ach_overview"]["ACH1"]["Sub-Cooling"]}"
         except Exception:
-            data_out['1_Time_ACH'] = f""
-            data_out['1_Fan'] = f"Fan 1: .............................. (?)% | Fan 2: .............................. (?)%"
-            data_out['1_Compressor'] = f"Comp 1: (??) | Comp 2: (??) | Comp 3: (??) | Comp 4: (??)"
-            data_out['1_Pump'] = f""
-            data_out['1_Temp and Free'] = f""
-            data_out['1_Condensing Pressure'] = f""
-            data_out['1_Evaporating Pressure'] = f""
-            data_out['1_Saturation Temp'] = f""
-            data_out['1_Super Heating'] = f""
-            data_out['1_Liquid Temp'] = f""
-            data_out['1_Sub-Cooling'] = f""
+            data_out["1_Time_ACH"] = f""
+            data_out["1_Fan"] = f"Fan 1: .............................. (?)% | Fan 2: .............................. (?)%"
+            data_out["1_Compressor"] = f"Comp 1: (??) | Comp 2: (??) | Comp 3: (??) | Comp 4: (??)"
+            data_out["1_Pump"] = f""
+            data_out["1_Temp and Free"] = f""
+            data_out["1_Condensing Pressure"] = f""
+            data_out["1_Evaporating Pressure"] = f""
+            data_out["1_Saturation Temp"] = f""
+            data_out["1_Super Heating"] = f""
+            data_out["1_Liquid Temp"] = f""
+            data_out["1_Sub-Cooling"] = f""
 
         try:
-            data_out['2_Time_ACH'] = f"{self.data['ach_overview']['ACH2']['Time']}"
-            data_out['2_Fan'] = f"{self.data['ach_overview']['ACH2']['Fan']}"
-            data_out['2_Compressor'] = f"{self.data['ach_overview']['ACH2']['Compressor']}"
-            data_out['2_Pump'] = f"{self.data['ach_overview']['ACH2']['Pump']}"
-            data_out['2_Temp and Free'] = f"{self.data['ach_overview']['ACH2']['Temp and Free']}"
-            data_out['2_Condensing Pressure'] = f"{self.data['ach_overview']['ACH2']['Condensing Pressure']}"
-            data_out['2_Evaporating Pressure'] = f"{self.data['ach_overview']['ACH2']['Evaporating Pressure']}"
-            data_out['2_Saturation Temp'] = f"{self.data['ach_overview']['ACH2']['Saturation Temp']}"
-            data_out['2_Super Heating'] = f"{self.data['ach_overview']['ACH2']['Super Heating']}"
-            data_out['2_Liquid Temp'] = f"{self.data['ach_overview']['ACH2']['Liquid Temp']}"
-            data_out['2_Sub-Cooling'] = f"{self.data['ach_overview']['ACH2']['Sub-Cooling']}"
+            data_out["2_Time_ACH"] = f"{self.data["ach_overview"]["ACH2"]["Time"]}"
+            data_out["2_Fan"] = f"{self.data["ach_overview"]["ACH2"]["Fan"]}"
+            data_out["2_Compressor"] = f"{self.data["ach_overview"]["ACH2"]["Compressor"]}"
+            data_out["2_Pump"] = f"{self.data["ach_overview"]["ACH2"]["Pump"]}"
+            data_out["2_Temp and Free"] = f"{self.data["ach_overview"]["ACH2"]["Temp and Free"]}"
+            data_out["2_Condensing Pressure"] = f"{self.data["ach_overview"]["ACH2"]["Condensing Pressure"]}"
+            data_out["2_Evaporating Pressure"] = f"{self.data["ach_overview"]["ACH2"]["Evaporating Pressure"]}"
+            data_out["2_Saturation Temp"] = f"{self.data["ach_overview"]["ACH2"]["Saturation Temp"]}"
+            data_out["2_Super Heating"] = f"{self.data["ach_overview"]["ACH2"]["Super Heating"]}"
+            data_out["2_Liquid Temp"] = f"{self.data["ach_overview"]["ACH2"]["Liquid Temp"]}"
+            data_out["2_Sub-Cooling"] = f"{self.data["ach_overview"]["ACH2"]["Sub-Cooling"]}"
         except Exception:
-            data_out['2_Time_ACH'] = f""
-            data_out['2_Fan'] = f"Fan 1: .............................. (?)% | Fan 2: .............................. (?)%"
-            data_out['2_Compressor'] = f"Comp 1: (??) | Comp 2: (??) | Comp 3: (??) | Comp 4: (??)"
-            data_out['2_Pump'] = f""
-            data_out['2_Temp and Free'] = f""
-            data_out['2_Condensing Pressure'] = f""
-            data_out['2_Evaporating Pressure'] = f""
-            data_out['2_Saturation Temp'] = f""
-            data_out['2_Super Heating'] = f""
-            data_out['2_Liquid Temp'] = f""
-            data_out['2_Sub-Cooling'] = f""
+            data_out["2_Time_ACH"] = f""
+            data_out["2_Fan"] = f"Fan 1: .............................. (?)% | Fan 2: .............................. (?)%"
+            data_out["2_Compressor"] = f"Comp 1: (??) | Comp 2: (??) | Comp 3: (??) | Comp 4: (??)"
+            data_out["2_Pump"] = f""
+            data_out["2_Temp and Free"] = f""
+            data_out["2_Condensing Pressure"] = f""
+            data_out["2_Evaporating Pressure"] = f""
+            data_out["2_Saturation Temp"] = f""
+            data_out["2_Super Heating"] = f""
+            data_out["2_Liquid Temp"] = f""
+            data_out["2_Sub-Cooling"] = f""
 
         try:
-            data_out['3_Time_ACH'] = f"{self.data['ach_overview']['ACH3']['Time']}"
-            data_out['3_Fan'] = f"{self.data['ach_overview']['ACH3']['Fan']}"
-            data_out['3_Compressor'] = f"{self.data['ach_overview']['ACH3']['Compressor']}"
-            data_out['3_Pump'] = f"{self.data['ach_overview']['ACH3']['Pump']}"
-            data_out['3_Temp and Free'] = f"{self.data['ach_overview']['ACH3']['Temp and Free']}"
-            data_out['3_Condensing Pressure'] = f"{self.data['ach_overview']['ACH3']['Condensing Pressure']}"
-            data_out['3_Evaporating Pressure'] = f"{self.data['ach_overview']['ACH3']['Evaporating Pressure']}"
-            data_out['3_Saturation Temp'] = f"{self.data['ach_overview']['ACH3']['Saturation Temp']}"
-            data_out['3_Super Heating'] = f"{self.data['ach_overview']['ACH3']['Super Heating']}"
-            data_out['3_Liquid Temp'] = f"{self.data['ach_overview']['ACH3']['Liquid Temp']}"
-            data_out['3_Sub-Cooling'] = f"{self.data['ach_overview']['ACH3']['Sub-Cooling']}"
+            data_out["3_Time_ACH"] = f"{self.data["ach_overview"]["ACH3"]["Time"]}"
+            data_out["3_Fan"] = f"{self.data["ach_overview"]["ACH3"]["Fan"]}"
+            data_out["3_Compressor"] = f"{self.data["ach_overview"]["ACH3"]["Compressor"]}"
+            data_out["3_Pump"] = f"{self.data["ach_overview"]["ACH3"]["Pump"]}"
+            data_out["3_Temp and Free"] = f"{self.data["ach_overview"]["ACH3"]["Temp and Free"]}"
+            data_out["3_Condensing Pressure"] = f"{self.data["ach_overview"]["ACH3"]["Condensing Pressure"]}"
+            data_out["3_Evaporating Pressure"] = f"{self.data["ach_overview"]["ACH3"]["Evaporating Pressure"]}"
+            data_out["3_Saturation Temp"] = f"{self.data["ach_overview"]["ACH3"]["Saturation Temp"]}"
+            data_out["3_Super Heating"] = f"{self.data["ach_overview"]["ACH3"]["Super Heating"]}"
+            data_out["3_Liquid Temp"] = f"{self.data["ach_overview"]["ACH3"]["Liquid Temp"]}"
+            data_out["3_Sub-Cooling"] = f"{self.data["ach_overview"]["ACH3"]["Sub-Cooling"]}"
         except Exception:
-            data_out['3_Time_ACH'] = f""
-            data_out['3_Fan'] = f"Fan 1: .............................. (?)% | Fan 2: .............................. (?)%"
-            data_out['3_Compressor'] = f"Comp 1: (??) | Comp 2: (??) | Comp 3: (??) | Comp 4: (??)"
-            data_out['3_Pump'] = f""
-            data_out['3_Temp and Free'] = f""
-            data_out['3_Condensing Pressure'] = f""
-            data_out['3_Evaporating Pressure'] = f""
-            data_out['3_Saturation Temp'] = f""
-            data_out['3_Super Heating'] = f""
-            data_out['3_Liquid Temp'] = f""
-            data_out['3_Sub-Cooling'] = f""
+            data_out["3_Time_ACH"] = f""
+            data_out["3_Fan"] = f"Fan 1: .............................. (?)% | Fan 2: .............................. (?)%"
+            data_out["3_Compressor"] = f"Comp 1: (??) | Comp 2: (??) | Comp 3: (??) | Comp 4: (??)"
+            data_out["3_Pump"] = f""
+            data_out["3_Temp and Free"] = f""
+            data_out["3_Condensing Pressure"] = f""
+            data_out["3_Evaporating Pressure"] = f""
+            data_out["3_Saturation Temp"] = f""
+            data_out["3_Super Heating"] = f""
+            data_out["3_Liquid Temp"] = f""
+            data_out["3_Sub-Cooling"] = f""
 
         try:
-            data_out['4_Time_ACH'] = f"{self.data['ach_overview']['ACH4']['Time']}"
-            data_out['4_Fan'] = f"{self.data['ach_overview']['ACH4']['Fan']}"
-            data_out['4_Compressor'] = f"{self.data['ach_overview']['ACH4']['Compressor']}"
-            data_out['4_Pump'] = f"{self.data['ach_overview']['ACH4']['Pump']}"
-            data_out['4_Temp and Free'] = f"{self.data['ach_overview']['ACH4']['Temp and Free']}"
-            data_out['4_Condensing Pressure'] = f"{self.data['ach_overview']['ACH4']['Condensing Pressure']}"
-            data_out['4_Evaporating Pressure'] = f"{self.data['ach_overview']['ACH4']['Evaporating Pressure']}"
-            data_out['4_Saturation Temp'] = f"{self.data['ach_overview']['ACH4']['Saturation Temp']}"
-            data_out['4_Super Heating'] = f"{self.data['ach_overview']['ACH4']['Super Heating']}"
-            data_out['4_Liquid Temp'] = f"{self.data['ach_overview']['ACH4']['Liquid Temp']}"
-            data_out['4_Sub-Cooling'] = f"{self.data['ach_overview']['ACH4']['Sub-Cooling']}"
+            data_out["4_Time_ACH"] = f"{self.data["ach_overview"]["ACH4"]["Time"]}"
+            data_out["4_Fan"] = f"{self.data["ach_overview"]["ACH4"]["Fan"]}"
+            data_out["4_Compressor"] = f"{self.data["ach_overview"]["ACH4"]["Compressor"]}"
+            data_out["4_Pump"] = f"{self.data["ach_overview"]["ACH4"]["Pump"]}"
+            data_out["4_Temp and Free"] = f"{self.data["ach_overview"]["ACH4"]["Temp and Free"]}"
+            data_out["4_Condensing Pressure"] = f"{self.data["ach_overview"]["ACH4"]["Condensing Pressure"]}"
+            data_out["4_Evaporating Pressure"] = f"{self.data["ach_overview"]["ACH4"]["Evaporating Pressure"]}"
+            data_out["4_Saturation Temp"] = f"{self.data["ach_overview"]["ACH4"]["Saturation Temp"]}"
+            data_out["4_Super Heating"] = f"{self.data["ach_overview"]["ACH4"]["Super Heating"]}"
+            data_out["4_Liquid Temp"] = f"{self.data["ach_overview"]["ACH4"]["Liquid Temp"]}"
+            data_out["4_Sub-Cooling"] = f"{self.data["ach_overview"]["ACH4"]["Sub-Cooling"]}"
         except Exception:
-            data_out['4_Time_ACH'] = f""
-            data_out['4_Fan'] = f"Fan 1: .............................. (?)% | Fan 2: .............................. (?)%"
-            data_out['4_Compressor'] = f"Comp 1: (??) | Comp 2: (??) | Comp 3: (??) | Comp 4: (??)"
-            data_out['4_Pump'] = f""
-            data_out['4_Temp and Free'] = f""
-            data_out['4_Condensing Pressure'] = f""
-            data_out['4_Evaporating Pressure'] = f""
-            data_out['4_Saturation Temp'] = f""
-            data_out['4_Super Heating'] = f""
-            data_out['4_Liquid Temp'] = f""
-            data_out['4_Sub-Cooling'] = f""
+            data_out["4_Time_ACH"] = f""
+            data_out["4_Fan"] = f"Fan 1: .............................. (?)% | Fan 2: .............................. (?)%"
+            data_out["4_Compressor"] = f"Comp 1: (??) | Comp 2: (??) | Comp 3: (??) | Comp 4: (??)"
+            data_out["4_Pump"] = f""
+            data_out["4_Temp and Free"] = f""
+            data_out["4_Condensing Pressure"] = f""
+            data_out["4_Evaporating Pressure"] = f""
+            data_out["4_Saturation Temp"] = f""
+            data_out["4_Super Heating"] = f""
+            data_out["4_Liquid Temp"] = f""
+            data_out["4_Sub-Cooling"] = f""
 
         self.dict_for_db = data_out
 
@@ -303,7 +331,7 @@ class DjangoDataBase():
 
         self.data = data
         self.dict_for_database()
-        repo = PostRepository(data_base['primary_db'])
+        repo = PostRepository(data_base["primary_db"])
 
         repo.update(1, title="Time", description=self.dict_for_db["Time"], alert="time", other="non")
         repo.update(2, title="PM", description=self.dict_for_db["PM"], alert="pm", other="non")

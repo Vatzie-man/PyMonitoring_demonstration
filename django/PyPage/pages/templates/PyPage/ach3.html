@@ -1,0 +1,62 @@
+
+{% extends "base.html" %}
+{% csrf_token %}
+
+{% block page_content %}
+
+<body>
+<header class="site-header">
+      <nav class="navbar navbar-expand-md navbar-dark bg-steel fixed-top">
+          <div class="container">
+            <div class="collapse navbar-collapse" id="navbarToggle">
+            <div class="navbar-nav mr-auto">
+                <a class="nav-item nav-link" href="{% url 'home' %}">Home</a>
+                <a class="nav-item nav-link" href="{% url 'ach' %}">Dach</a>
+                <a class="nav-item nav-link" href="{% url 'ach1' %}">ACH1</a>
+                <a class="nav-item nav-link" href="{% url 'ach2' %}">ACH2</a>
+                <a class="nav-item nav-link" href="{% url 'ach3' %}">ACH3</a>
+                <a class="nav-item nav-link" href="{% url 'ach4' %}">ACH4</a>
+            </div>
+
+
+            </div>
+          </div>
+        </nav>
+    </header>
+
+{% for post in posts %}
+
+{% if post.title == '3_Time_ACH' %}
+     <h4><span style="color: black"><b>Time:</b></span>
+        <b><b><span style="color: #2aa22a"> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ post.description }}</span></b></b></h4>
+        <h3><span style="color: grey">ACH3</span></h3>
+        <h6><span style="color: grey"><b>____________________________________________________________________________________</b></span></h6>
+{% else %}
+    <h5><span style="color: dark grey">{{ post.description }}</span></h5>
+    <p></p>
+{% endif %}
+
+{% endfor %}
+
+<script>
+    window.setTimeout(function () {
+        // Check if the hostname is not equal to '127.0.0.1'
+        if (window.location.hostname !== '127.0.0.1') {
+            // Reload the page
+            window.location.reload();
+        } else {
+            // Redirect after 5 seconds if the hostname is '127.0.0.1'
+            location.href = "http://127.0.0.1:8000/ach3";
+        }
+    }, 10000); // Redirect or reload after (mil second) seconds
+</script>
+
+{% endblock page_content %}
+</body>
+
+
+
+
+
+
+
