@@ -3,11 +3,11 @@ import requests
 
 from pyzabbix import ZabbixAPI
 from collections import defaultdict
-from settings import secrets_zabbix
+from _pym_settings import secrets_zabbix
 
-ZABBIX_URL = secrets_zabbix['zabbix_url']
-ZABBIX_USER = secrets_zabbix['zabbix_user']
-ZABBIX_PASS = secrets_zabbix['zabbix_password']
+ZABBIX_URL = secrets_zabbix["zabbix_url"]
+ZABBIX_USER = secrets_zabbix["zabbix_user"]
+ZABBIX_PASS = secrets_zabbix["zabbix_password"]
 
 requests.packages.urllib3.disable_warnings()
 
@@ -22,24 +22,24 @@ class Zabbix:
     @staticmethod
     def helper(data):
         for k, v in data.items():
-            if k == 'Total power usage':
-                data[k] = data[k]['lastvalue']
+            if k == "Total power usage":
+                data[k] = data[k]["lastvalue"]
 
-            if k != 'Total power usage':
+            if k != "Total power usage":
                 data[k] = {
-                    'pumpspeed': data[k]['pumpspeed']['lastvalue'],
+                    "pumpspeed": data[k]["pumpspeed"]["lastvalue"],
 
-                    't1': data[k]['t1']['lastvalue'],
-                    't2': data[k]['t2']['lastvalue'],
-                    't3': data[k]['t3']['lastvalue'],
-                    't4': data[k]['t4']['lastvalue'],
-                    'numalarms': data[k]['numalarms']['lastvalue'],
-                    'numwarnings': data[k]['numwarnings']['lastvalue']
+                    "t1": data[k]["t1"]["lastvalue"],
+                    "t2": data[k]["t2"]["lastvalue"],
+                    "t3": data[k]["t3"]["lastvalue"],
+                    "t4": data[k]["t4"]["lastvalue"],
+                    "numalarms": data[k]["numalarms"]["lastvalue"],
+                    "numwarnings": data[k]["numwarnings"]["lastvalue"]
                 }
 
         return {
-            'status': True,
-            'data': data
+            "status": True,
+            "data": data
         }
 
     def __init__(self):
@@ -53,9 +53,9 @@ class Zabbix:
             "id": 1
         }
         self.wanted_hosts = {
-            '10401': 'CDU1',
-            '10680': 'CDU2',
-            '10681': 'CDU3'
+            "10401": "CDU1",
+            "10680": "CDU2",
+            "10681": "CDU3"
         }
 
     def login(self):
@@ -76,18 +76,18 @@ class Zabbix:
     def request(self):
         response = self.get_data()
         if response:
-            out = response['result'][0:]
+            out = response["result"][0:]
 
-            data = [[self.wanted_hosts[x['hostid']], x] for x in out if x['hostid'] in self.wanted_hosts.keys()]
+            data = [[self.wanted_hosts[x["hostid"]], x] for x in out if x["hostid"] in self.wanted_hosts.keys()]
             out = defaultdict(dict)
-            out['Total power usage'] = {
-                k: x for k, x in response['result'][0].items() if
-                k not in ('name', 'lastclock') and k == 'lastvalue'
+            out["Total power usage"] = {
+                k: x for k, x in response["result"][0].items() if
+                k not in ("name", "lastclock") and k == "lastvalue"
             }
 
             for x in data:
-                out[x[0]][x[1]['name']] = {k: x[1][k] for k in x[1].keys() if k != 'name'}
+                out[x[0]][x[1]["name"]] = {k: x[1][k] for k in x[1].keys() if k != "name"}
 
             return self.helper(out)
 
-        return {'status': False}
+        return {"status": False}

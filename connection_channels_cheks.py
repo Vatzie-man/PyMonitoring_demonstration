@@ -1,16 +1,16 @@
 import time
 import requests
 from mattermost import Mattermost
-from settings import secrets_oft, secrets_main, secrets_mm
+from _pym_settings import secrets_oft, secrets_main, secrets_mm
 
-destination: str = secrets_oft['call_me_bot_url']
-apikey: str = secrets_oft['cal_me_bot_apikey']
+destination: str = secrets_oft["call_me_bot_url"]
+apikey: str = secrets_oft["cal_me_bot_apikey"]
 
-dtp_destination_test: str = secrets_oft['call_me_bot_url_dtp_test']
-dtp_apikey_test: str = secrets_oft['cal_me_bot_apikey_dtp_test']
+dtp_destination_test: str = secrets_oft["call_me_bot_url_dtp_test"]
+dtp_apikey_test: str = secrets_oft["cal_me_bot_apikey_dtp_test"]
 
-vatzie_post_to_edit = secrets_main['vatzie_post_to_edit']
-vatzie_mm_api_token = secrets_mm['mm_waclaw_apikey']
+vatzie_post_to_edit = secrets_main["vatzie_post_to_edit"]
+vatzie_mm_api_token = secrets_mm["mm_waclaw_apikey"]
 
 mm = Mattermost()
 

@@ -3,8 +3,7 @@ import sys
 import time
 import shutil
 
-from settings import secrets_main, data_base
-
+from _pym_settings import secrets_main, data_base
 from dict_for_fermion import Dict_For_Fermion
 from enviro_alert import Alert
 from make_MM_str import MM_Str
@@ -14,51 +13,82 @@ from zabbix import Zabbix
 from power_monitoring import PowerMonitoringAlert
 from ach_overview import AchOverview
 from sqlitedb import DjangoDataBase
+from read_options_db import get_options
 
-if sys.platform != 'win32':
+# from gui_tk import controller_run
+
+WATCHER_POST_DESTINATION = secrets_main["watcher"]
+
+settings_for_oft = {
+    "CDUs_t1_min": 16.0,
+    "CDUs_t1_max": 25.0,
+    "ACH1_inlet": 18.0,
+    "ACH1_outlet": 16.0,
+    "ACH2_inlet": 18.0,
+    "ACH2_outlet": 16.0,
+    "ACH3_inlet": 18.0,
+    "ACH3_outlet": 16.0,
+    "ACH4_inlet": 18.0,
+    "ACH4_outlet": 16.0,
+    "PCW1_H0_return": 25.0,
+    "PCW1_H1_return": 26.0,
+    "PCW2_H1_return": 26.0,
+    "PCW_UPS+1_return": 25.0,
+    "PCW_UPS-1_return": 25.0
+}
+
+if sys.platform != "win32":
     from readGPIO import get_switches_gpio
-
-WATCHER_POST_DESTINATION = secrets_main['watcher']
 
 
 def get_platform():
-    if sys.platform == 'win32':
-        return 'WIN'
-    return 'RPi'
+    if sys.platform == "win32":
+        return "WIN"
+    return "RPi"
 
 
 class Options:
-    '''Basic seteups on the go'''
+    """Basic seteups on the go"""
+
     def __init__(self):
-        self.current_options_settings: list = []
-        self.time_program_started: str = ' '.join(time.asctime().split()[1:4])
+        self.time_program_started: str = " ".join(time.asctime().split()[1:4])
+        self.current_options_settings: dict = dict()
 
-    def check_options_settings(self):
-        with open('options_settings.json', 'r') as f:
-            options = json.load(f)
+    def check_options_settings_from_db(self):
 
-        new_options_settings = [options['alert_notifications'], options['whatsapp'], options['check_channels'], options['not_plain_mode'],
-                                options['data_formatted'], options['fermion_watcher'], options['wait_time']]
+        options = get_options()
+        if options != self.current_options_settings:
+            order = ["notifications", "whatsapp", "check channels", "display_mode", "time_delay"]
+            print(self.time_program_started)
+            print(", ".join([f"{order[option]}: {options[order[option]]}" for option in sorted(map(order.index, options))]))
 
-        if self.current_options_settings != new_options_settings:
-            print(f"Running since: {self.time_program_started}")
-            print(f"notifications: {bool(options['alert_notifications'])}, "
-                  f"whatsapp: {bool(options['whatsapp'])}, "
-                  f"check_channels: {bool(options['check_channels'])}, "
-                  f"not_plain_mode: {bool(options['not_plain_mode'])}, "
-                  f"data_formatted: {bool(options['data_formatted'])}, "
-                  f"fermion_watcher: {bool(options['fermion_watcher'])}, "
-                  f"wait_time: {float(options['wait_time'])}s")
+        self.current_options_settings = options
 
-        self.current_options_settings = [item for item in new_options_settings]
-        return self.current_options_settings
+        if options["display_mode"] == "plain mode":
+            not_plain_mode = False
+            data_formatted = False
+        if options["display_mode"] == "json":
+            not_plain_mode = True
+            data_formatted = False
+        if options["display_mode"] == "data formatted":
+            not_plain_mode = True
+            data_formatted = True
+
+        alert_notifications = options["notifications"]
+        whatsapp = options["whatsapp"]
+        check_channels = options["check channels"]
+        wait_time = options["time_delay"]
+        fermion_watcher = False
+
+        return [alert_notifications, whatsapp, check_channels, not_plain_mode, data_formatted, fermion_watcher, wait_time, settings_for_oft]
 
 
-class modifyDjangoDB:
-    '''Modifys db for Django webpage'''
+class ModifyDjangoDB:
+    """Modifys db for Django webpage"""
+
     def __init__(self):
-        self.primary_db: str = data_base['primary_db']
-        self.replica_db: str = data_base['replica_db']
+        self.primary_db: str = data_base["primary_db"]
+        self.replica_db: str = data_base["replica_db"]
 
         self.djangodb = DjangoDataBase()
 
@@ -70,9 +100,14 @@ class modifyDjangoDB:
         shutil.copyfile(self.primary_db, self.replica_db)
 
 
+class ReadRunOptions:
+    def __init__(self):
+        self.options_db: str = "_options.db"
+
+
 class Executor:
     # list of devs data of which is gathered (zabbix not included here)
-    LST_OF_DEVS = ['ACH2', 'ACH4', 'ACH3', 'ACH1', 'PCW1 H0', 'PCW1 H1', 'PCW2 H1', 'PCW UPS+1', 'PCW UPS-1']
+    LST_OF_DEVS = ["ACH2", "ACH4", "ACH3", "ACH1", "PCW1 H0", "PCW1 H1", "PCW2 H1", "PCW UPS+1", "PCW UPS-1"]
     enviro_devs = dict.fromkeys(LST_OF_DEVS)
 
     def __init__(self, platform=None):
@@ -81,8 +116,10 @@ class Executor:
 
         self.platform: str = platform
         self.notifications: str = str()
+        self.options: str = str()
         self.alarm_for_watcher: bool = False
 
+        self.settings_for_oft: dict = dict()
         self.data: dict = dict()
         self.out_powermonitoring: dict = dict()
         self.out_enviro: dict = dict()
@@ -98,22 +135,27 @@ class Executor:
         self.powermonitoring = PowerMonitoringAlert()
         self.ACH_overview = AchOverview()
 
-        self.modify_db = modifyDjangoDB()
+        self.modify_db = ModifyDjangoDB()
         self.options_settings = Options()
 
-        if self.platform == 'WIN':
-            self.main_post_destination = secrets_main['which_platform_WIN']
-            self.users = 'wk'
+        if self.platform == "WIN":
+            self.main_post_destination = secrets_main["which_platform_WIN"]
+            self.users = "wk"
 
         else:
-            self.main_post_destination = secrets_main['which_platform_RPi']
-            self.users = 'oo'
+            self.main_post_destination = secrets_main["which_platform_RPi"]
+            self.users = "oo"
+
+    def get_options_from_db(self):
+        self.options = self.options_settings.check_options_settings_from_db()
 
     def run(self) -> None:
-
         while True:
+
+            self.get_options_from_db()
+
             (self.alert_notifications, self.whatsapp, self.check_channels, self.not_plain_mode,
-             self.data_formatted, self.fermion_watcher, self.wait_time) = self.options_settings.check_options_settings()
+             self.data_formatted, self.fermion_watcher, self.wait_time, self.settings_for_oft) = self.options
 
             self.out_powermonitoring = self.powermonitoring.get_power_monitoring_alerts()
             time.sleep(self.wait_time * 2)
@@ -125,7 +167,7 @@ class Executor:
 
             self.out_zabbix = self.zabbix.request()
 
-            if self.platform == 'RPi':
+            if self.platform == "RPi":
                 self.notifications, self.whatsapp, self.fermion_watcher = get_switches_gpio()
 
             self.make_data_dict()
@@ -137,24 +179,24 @@ class Executor:
             self.modify_db.database_operations(self.data)
 
     def make_data_dict(self) -> None:
-        '''Create dict which is passed to out_of_tolerance check'''
-        if self.out_zabbix['status'] == True:
+        """Create dict which is passed to out_of_tolerance check"""
+        if self.out_zabbix["status"] == True:
             self.data = {
-                'Listening': '',
-                'power_monitoring': self.out_powermonitoring,
-                'ach_overview': self.ach_overview,
+                "Listening": "",
+                "power_monitoring": self.out_powermonitoring,
+                "ach_overview": self.ach_overview,
 
-                'Ares': self.out_zabbix['data']['Total power usage'],
-                'CDU1': self.out_zabbix['data']['CDU1'],
-                'CDU2': self.out_zabbix['data']['CDU2'],
-                'CDU3': self.out_zabbix['data']['CDU3']
+                "Ares": self.out_zabbix["data"]["Total power usage"],
+                "CDU1": self.out_zabbix["data"]["CDU1"],
+                "CDU2": self.out_zabbix["data"]["CDU2"],
+                "CDU3": self.out_zabbix["data"]["CDU3"]
             }
 
         else:
             self.data = {
-                'Listening': '',
-                'power_monitoring': self.out_powermonitoring,
-                'ach_overview': self.ach_overview
+                "Listening": "",
+                "power_monitoring": self.out_powermonitoring,
+                "ach_overview": self.ach_overview
             }
         # add to data all key-value pairs from out_enviro; these might change
         for k in Executor.enviro_devs.keys():
@@ -162,18 +204,19 @@ class Executor:
 
     def out_of_tolerance(self) -> None:
         self.notifications, self.alarm_for_watcher \
-            = self.oft.check(self.data, self.users, self.alert_notifications, self.whatsapp, self.check_channels, self.out_zabbix['status'])
+            = self.oft.check(self.data, self.settings_for_oft, self.users, self.alert_notifications, self.whatsapp, self.check_channels,
+                             self.out_zabbix["status"])
 
     def user_interface(self) -> None:
-        '''Graphical presentation in MM'''
-        self.data['Listening'] = self.notifications
-        self.data['Time'] = f"{' '.join(time.asctime().split()[1:4])}"
+        """Graphical presentation in MM"""
+        self.data["Listening"] = self.notifications
+        self.data["Time"] = f"{' '.join(time.asctime().split()[1:4])}"
 
         self.data_to_MM()
         self.fermion_watcher_display()
 
     def data_to_MM(self):
-        '''not_plain_mode - data send to MM as json or formated string'''
+        """not_plain_mode - data send to MM as json or formated string"""
         if self.not_plain_mode:
             def message():
                 return self.mm_str.make_mm_str(self.data, self.fermion_watcher, self.alarm_for_watcher) \
@@ -182,7 +225,7 @@ class Executor:
             self.mm.mm_edit(message(), self.main_post_destination)
 
     def fermion_watcher_display(self):
-        '''ESP32_fermion_screen'''
+        """ESP32_fermion_screen"""
         if self.fermion_watcher and (json_fermion := self.fermion.dict_for_fermion(self.data)):
             time.sleep(self.wait_time * 2)
             self.mm.mm_edit(json.dumps(json_fermion), WATCHER_POST_DESTINATION)
