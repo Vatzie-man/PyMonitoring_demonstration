@@ -1,0 +1,137 @@
+
+
+
+
+{% extends "base.html" %}
+{% csrf_token %}
+
+{% block page_content %}
+
+<body>
+    <header class="site-header">
+      <nav class="navbar navbar-expand-md navbar-dark bg-steel fixed-top">
+          <div class="container">
+            <div class="collapse navbar-collapse" id="navbarToggle">
+            <div class="navbar-nav mr-auto">
+                <a class="nav-item nav-link" href="{% url 'home' %}">Home</a>
+                <a class="nav-item nav-link" href="{% url 'ach' %}">Dach</a>
+            </div>
+
+            <div class="navbar-nav">
+              {% if user.is_authenticated %}
+                <a class="nav-item nav-link" href="admin">Admin</a>
+              {% else %}
+                <a class="nav-item nav-link" href="admin">Login</a>
+              {% endif %}
+            </div>
+            </div>
+          </div>
+        </nav>
+    </header>
+
+    <nav class="navbar navbar-expand-md navbar-dark bg-steel fixed-bottom">
+    <div class="collapse navbar-collapse" id="">
+        <div class="navbar-nav mr-auto">
+        </div>
+        </nav>
+
+
+{% for post in posts %}
+
+    {% if post.alert == 'time' %}
+        <h4><span style="color: black"><b>{{ post.title }}:</b></span>
+            <b><b><span style="color: #2aa22a"> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ post.description }}</span></b></b></h4>
+        <p></p>
+        <p></p>
+    {% endif %}
+
+    {% if post.alert == 'pm' %}
+        <h4><span style="color: #003366">{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</span>
+            <span style="color: grey">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ post.description }}</span></h4>
+        <p></p>
+    {% endif %}
+
+    {% if post.alert == 'non' %}
+        <h4><span style="color: #003366"><b>{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</b></span>
+            <span style="color: dark grey">{{ post.description }}</span></h4>
+        <p></p>
+    {% endif %}
+
+    {% if post.alert == 'view_ach_detail_home' %}
+        <h6><span style="color: grey">{{ post.description }}</span></h6>
+    {% endif %}
+
+     {% if post.alert == 'Local ON' %}
+        <h4><span style="color: #009900"><b><b><b>{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</b></b></b></span>
+            <span style="color: dark grey">{{ post.description }}</span></h4>
+    {% endif %}
+
+    {% if post.alert == 'Warning On' %}
+        <h4><span style="color: #009900"><b><b><b>{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</b></b></b></span>
+            <span style="color: dark grey">{{ post.description }}</span></h4>
+    {% endif %}
+
+    {% if post.alert == 'Standby' %}
+        <h4><span style="color: #ff9900"><b><b><b>{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</b></b></b></span>
+            <span style="color: dark grey">{{ post.description }}</span></h4>
+    {% endif %}
+
+    {% if post.alert == 'Local OFF' %}
+        <h4><span style="color: red"><b><b><b>{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</b></b></b></span>
+            <span style="color: dark grey">{{ post.description }}</span></h4>
+    {% endif %}
+
+    {% if post.alert == 'Alarm ON' %}
+        <h4><span style="color: red"><b><b><b>{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</b></b></b></span>
+            <span style="color: dark grey">{{ post.description }}</span></h4>
+    {% endif %}
+
+    {% if post.alert == 'Power Failure' %}
+        <h4><span style="color: red"><b><b><b>{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</b></b></b></span>
+            <span style="color: dark grey">{{ post.description }}</span></h4>
+    {% endif %}
+
+    {% if post.alert == 'Offline' %}
+        <h4><span style="color: grey"><b><b><b>{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</b></b></b></span>
+            <span style="color: grey">{{ post.description }}</span></h4>
+        <p></p>
+    {% endif %}
+
+    {% if post.alert == 'line_after_cdu3' %}
+        <h4><span style="color: #003366"><b>{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</b></span><span style="color: dark grey">{{ post.description }}</span></h4>
+        <p><h6><span style="color: grey"><b>____________________________________________________________________________________</b></span></h6></p>
+    {% endif %}
+
+    {% if post.alert == 'line_before_pcw1_h0' %}
+        <p><h6><span style="color: grey"><b>____________________________________________________________________________________</b></span></h6></p>
+        <h4><span style="color: #003366"><b>{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</b></span>
+        <span style="color: dark grey">{{ post.description }}</span></h4>
+        <p></p>
+    {% endif %}
+
+{% endfor %}
+
+
+<script>
+    window.setTimeout(function () {
+        // Check if the hostname is not equal to '127.0.0.1'
+        if (window.location.hostname !== '127.0.0.1') {
+            // Reload the page
+            window.location.reload();
+        } else {
+            // Redirect after 5 seconds if the hostname is '127.0.0.1'
+            location.href = "http://127.0.0.1:8000/";
+        }
+    }, 10000); // Redirect or reload after (mil second) seconds
+</script>
+
+</body>
+{% endblock page_content %}
+
+
+
+
+
+
+
+

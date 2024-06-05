@@ -1,5 +1,4 @@
 # program to be used on RPi; it gathers data from physical pins/dips
-import time
 import RPi.GPIO as GPIO
 
 # set the GPIO mode to BCM
