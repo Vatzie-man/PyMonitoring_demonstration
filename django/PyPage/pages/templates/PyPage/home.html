@@ -47,7 +47,7 @@
 
     {% if post.alert == 'pm' %}
         <h4><span style="color: #003366">{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</span>
-            <span style="color: grey">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ post.description }}</span></h4>
+            <span style="color: grey">&nbsp;&nbsp;{{ post.description }}</span></h4>
         <p></p>
     {% endif %}
 
@@ -98,7 +98,7 @@
     {% endif %}
 
     {% if post.alert == 'line_after_cdu3' %}
-        <h4><span style="color: #003366"><b>{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</b></span><span style="color: dark grey">{{ post.description }}</span></h4>
+        <h4><span style="color: #003366"><b>{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</b></span><span style="color: dark grey">{{ post.description }}</span></h4>
         <p><h6><span style="color: grey"><b>____________________________________________________________________________________</b></span></h6></p>
     {% endif %}
 

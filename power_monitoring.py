@@ -99,5 +99,12 @@ class PowerMonitoringAlert:
 
         return data
 
-# o = PowerMonitoringAlert()
-# print(o.get_power_monitoring_alerts())
+def main() -> None:
+    o = PowerMonitoringAlert()
+    print(o.get_power_monitoring_alerts())
+
+if __name__ == '__main__':
+    main()
+
+
+

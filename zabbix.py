@@ -60,14 +60,17 @@ class Zabbix:
 
     def login(self):
         self.zapi = ZabbixAPI(ZABBIX_URL, session=session)
-        self.zapi.login(ZABBIX_USER, ZABBIX_PASS)
+        try:
+            self.zapi.login(ZABBIX_USER, ZABBIX_PASS)  # when server was down it caused program crash
+        except Exception:
+            print("Cant login to zabbix.")
 
     def get_data(self):
         for retry_attempt in range(Zabbix.max_retries):
             try:
                 return self.zapi.do_request(self.method, self.params)
             except Exception as e:
-                print(f"{" ".join(time.asctime().split()[1:4])} > Unable to pull Zabbix data")
+                print(f"{' '.join(time.asctime().split()[1:4])} > Unable to pull Zabbix data")
                 time.sleep(Zabbix.retry_delay)
                 self.login()
 
@@ -91,3 +94,12 @@ class Zabbix:
             return self.helper(out)
 
         return {"status": False}
+
+
+def main() -> None:
+    get_data = Zabbix()
+    data = get_data.request()
+    print(data)
+
+if __name__ == '__main__':
+    main()

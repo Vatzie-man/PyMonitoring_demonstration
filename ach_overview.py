@@ -27,17 +27,18 @@ class AchOverview:
 
         out = dict()
         try:
-            out["Pumps"] = (f"Pump 1: {AchOverview.UNIT_STATUS_PARAMS.get(data[1]["value"][0])} | "
-                            f"Pump 2: {AchOverview.UNIT_STATUS_PARAMS.get(data[1]["value"][1])}")
+            out[
+                "Pumps"] = (f"Pump 1: {AchOverview.UNIT_STATUS_PARAMS.get(data[1]['value'][0])} | "
+                            f"Pump 2: {AchOverview.UNIT_STATUS_PARAMS.get(data[1]['value'][1])}")
 
             out["Fans1"] = int(data[3]["value"][0])
             out["Fans2"] = int(data[4]["value"][0])
 
             out["Compressors"] = (
-                f"Comp 1: {AchOverview.UNIT_STATUS_PARAMS.get(data[2]["value"][0])} | "
-                f"Comp 2: {AchOverview.UNIT_STATUS_PARAMS.get(data[2]["value"][1])} | "
-                f"Comp 3: {AchOverview.UNIT_STATUS_PARAMS.get(data[2]["value"][3])} | "
-                f"Comp 4: {AchOverview.UNIT_STATUS_PARAMS.get(data[2]["value"][4])}")
+                f"Comp 1: {AchOverview.UNIT_STATUS_PARAMS.get(data[2]['value'][0])} | "
+                f"Comp 2: {AchOverview.UNIT_STATUS_PARAMS.get(data[2]['value'][1])} | "
+                f"Comp 3: {AchOverview.UNIT_STATUS_PARAMS.get(data[2]['value'][3])} | "
+                f"Comp 4: {AchOverview.UNIT_STATUS_PARAMS.get(data[2]['value'][4])}")
 
         except Exception:
             return ""
@@ -49,24 +50,25 @@ class AchOverview:
 
         out = dict()
         try:
-            out["Temp Setpoint 1"] = f"{float(data[0]["value"][0] / 10)}C"
-            out["Temp Setpoint 2"] = f"{float(data[1]["value"][0] / 10)}C"
-            out["Temp Setpoint 3"] = f"{float(data[2]["value"][0] / 10)}C"
-            out["Condensing Pressure (HP) C1"] = f"{float(data[3]["value"][0] / 10)} bar"
-            out["Condensing Pressure (HP) C2"] = f"{float(data[4]["value"][0] / 10)} bar"
-            out["Evaporating Pressure C1"] = f"{float(data[5]["value"][0] / 10)} bar"
-            out["Evaporating Pressure C2"] = f"{float(data[5]["value"][1] / 10)} bar"
-            out["Saturation Temp C1"] = f"{float(data[7]["value"][0] / 10)}C"
-            out["Saturation Temp C2"] = f"{float(data[7]["value"][1] / 10)}C"
+            out["Temp Setpoint 1"] = f"{float(data[0]['value'][0] / 10)}C"
+            out["Temp Setpoint 2"] = f"{float(data[1]['value'][0] / 10)}C"
+            out["Temp Setpoint 3"] = f"{float(data[2]['value'][0] / 10)}C"
+            out["Condensing Pressure (HP) C1"] = f"{float(data[3]['value'][0] / 10)} bar"
+            out["Condensing Pressure (HP) C2"] = f"{float(data[4]['value'][0] / 10)} bar"
+            out["Evaporating Pressure C1"] = f"{float(data[5]['value'][0] / 10)} bar"
+            out["Evaporating Pressure C2"] = f"{float(data[5]['value'][1] / 10)} bar"
+            out["Saturation Temp C1"] = f"{float(data[7]['value'][0] / 10)}C"
+            out["Saturation Temp C2"] = f"{float(data[7]['value'][1] / 10)}C"
             # out["Condensing Temp C1"] = f""
             # out["Condensing Temp C2"] = f""
-            out["Super Heating C1"] = f"{float(data[8]["value"][0] / 10)}K"
-            out["Super Heating C2"] = f"{float(data[8]["value"][1] / 10)}K"
-            out["Free Cooling Valve"] = f"{int(data[6]["value"][0] / 10)}%"
-            out["Liquid Temp C1"] = f"{float(data[9]["value"][0] / 10)}C"
-            out["Liquid Temp C2"] = f"{float(data[10]["value"][0] / 10)}C"
-            out["Sub-Cooling C1"] = f"{float(data[11]["value"][0] / 10)}K"
-            out["Sub-Cooling C2"] = f"{float(data[12]["value"][0] / 10)}K"
+            out["Super Heating C1"] = f"{float(data[8]['value'][0] / 10)}K"
+            out["Super Heating C2"] = f"{float(data[8]['value'][1] / 10)}K"
+            out["Free Cooling Valve"] = f"{int(data[6]['value'][0] / 10)}%"
+            out["Liquid Temp C1"] = f"{float(data[9]['value'][0] / 10)}C"
+            out["Liquid Temp C2"] = f"{float(data[10]['value'][0] / 10)}C"
+            out["Sub-Cooling C1"] = f"{float(data[11]['value'][0] / 10)}K"
+            out["Sub-Cooling C2"] = f"{float(data[12]['value'][0] / 10)}K"
+
         except Exception:
             return ""
 
@@ -95,36 +97,36 @@ class AchOverview:
         for k in out.keys():
             temp = dict()
 
-            temp["Time"] = f"{" ".join(time.asctime().split()[1:4])}"
+            temp["Time"] = f"{' '.join(time.asctime().split()[1:4])}"
             try:
                 temp["Fan"] = (
-                    f"Fan 1: {("|" * int(round(self.out[k]["second"]["Fans1"] * 3 / 10))).ljust(30, ".")} {self.out[k]["second"]["Fans1"]}% | "
-                    f"Fan 2: {("|" * int(round(self.out[k]["second"]["Fans2"] * 3 / 10))).ljust(30, ".")} {self.out[k]["second"]["Fans2"]}%")
+                    f"Fan 1: {('|' * int(round(self.out[k]['second']['Fans1'] * 3 / 10))).ljust(30, '.')} {self.out[k]['second']['Fans1']}% | "
+                    f"Fan 2: {('|' * int(round(self.out[k]['second']['Fans2'] * 3 / 10))).ljust(30, '.')} {self.out[k]['second']['Fans2']}%")
 
-                temp["Compressor"] = f"{self.out[k]["second"]["Compressors"]}"
-                temp["Pump"] = f"{self.out[k]["second"]["Pumps"]}"
-                temp["Temp and Free"] = (f"Setpoint 1: {self.out[k]["main"]["Temp Setpoint 1"]} | "
-                                         f"Setpoint 2: {self.out[k]["main"]["Temp Setpoint 2"]} | "
-                                         f"Setpoint 3: {self.out[k]["main"]["Temp Setpoint 3"]} | "
-                                         f"Free Cooling Valve: {self.out[k]["main"]["Free Cooling Valve"]}")
+                temp["Compressor"] = f"{self.out[k]['second']['Compressors']}"
+                temp["Pump"] = f"{self.out[k]['second']['Pumps']}"
+                temp["Temp and Free"] = (f"Setpoint 1: {self.out[k]['main']['Temp Setpoint 1']} | "
+                                         f"Setpoint 2: {self.out[k]['main']['Temp Setpoint 2']} | "
+                                         f"Setpoint 3: {self.out[k]['main']['Temp Setpoint 3']} | "
+                                         f"Free Cooling Valve: {self.out[k]['main']['Free Cooling Valve']}")
 
-                temp["Condensing Pressure"] = (f"Condensing Pressure (HP) C1: {self.out[k]["main"]["Condensing Pressure (HP) C1"]} | "
-                                               f"Condensing Pressure (HP) C2: {self.out[k]["main"]["Condensing Pressure (HP) C2"]}")
+                temp["Condensing Pressure"] = (f"Condensing Pressure (HP) C1: {self.out[k]['main']['Condensing Pressure (HP) C1']} | "
+                                               f"Condensing Pressure (HP) C2: {self.out[k]['main']['Condensing Pressure (HP) C2']}")
 
-                temp["Evaporating Pressure"] = (f"Evaporating Pressure C1: {self.out[k]["main"]["Evaporating Pressure C1"]} | "
-                                                f"Evaporating Pressure C2: {self.out[k]["main"]["Evaporating Pressure C2"]}")
+                temp["Evaporating Pressure"] = (f"Evaporating Pressure C1: {self.out[k]['main']['Evaporating Pressure C1']} | "
+                                                f"Evaporating Pressure C2: {self.out[k]['main']['Evaporating Pressure C2']}")
 
-                temp["Saturation Temp"] = (f"Saturation Temp C1: {self.out[k]["main"]["Saturation Temp C1"]} |"
-                                           f"Saturation Temp C2: {self.out[k]["main"]["Saturation Temp C2"]}")
+                temp["Saturation Temp"] = (f"Saturation Temp C1: {self.out[k]['main']['Saturation Temp C1']} |"
+                                           f"Saturation Temp C2: {self.out[k]['main']['Saturation Temp C2']}")
 
-                temp["Super Heating"] = (f"Super Heating C1: {self.out[k]["main"]["Super Heating C1"]} | "
-                                         f"Super Heating C2: {self.out[k]["main"]["Super Heating C2"]}")
+                temp["Super Heating"] = (f"Super Heating C1: {self.out[k]['main']['Super Heating C1']} | "
+                                         f"Super Heating C2: {self.out[k]['main']['Super Heating C2']}")
 
-                temp["Liquid Temp"] = (f"Liquid Temp C1: {self.out[k]["main"]["Liquid Temp C1"]} | "
-                                       f"Liquid Temp C2: {self.out[k]["main"]["Liquid Temp C2"]}")
+                temp["Liquid Temp"] = (f"Liquid Temp C1: {self.out[k]['main']['Liquid Temp C1']} | "
+                                       f"Liquid Temp C2: {self.out[k]['main']['Liquid Temp C2']}")
 
-                temp["Sub-Cooling"] = (f"Sub-Cooling C1: {self.out[k]["main"]["Sub-Cooling C1"]} | "
-                                       f"Sub-Cooling C2: {self.out[k]["main"]["Sub-Cooling C2"]}")
+                temp["Sub-Cooling"] = (f"Sub-Cooling C1: {self.out[k]['main']['Sub-Cooling C1']} | "
+                                       f"Sub-Cooling C2: {self.out[k]['main']['Sub-Cooling C2']}")
 
                 out[k] = temp
 
@@ -148,7 +150,13 @@ class AchOverview:
         out = self.make_str()
         return out
 
-# o = AchOverview()
-# out = o.get_ach_overview_info()
-# for k, v in out.items():
-#     print(k, v)
+def main() -> None:
+    o = AchOverview()
+    out = o.get_ach_overview_info()
+    for k, v in out.items():
+        print(k, v)
+if __name__ == '__main__':
+    main()
+
+
+

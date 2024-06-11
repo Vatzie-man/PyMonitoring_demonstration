@@ -36,5 +36,12 @@ def get_options() -> dict:
     repo = PostRepository("_options.db")
     return {item.option: item.state for item in repo.get_all()}
 
+def main() -> None:
+    print(get_options())
 
-# print(get_options())
+if __name__ == '__main__':
+    main()
+
+
+
+

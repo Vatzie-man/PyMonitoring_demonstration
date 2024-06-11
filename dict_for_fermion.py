@@ -1,7 +1,7 @@
 import time
 
 
-class DictForFermion:
+class Dict_For_Fermion:
 
     def __init__(self):
         self.out = {
@@ -23,7 +23,11 @@ class DictForFermion:
 
     def dict_for_fermion(self, data_dict):
 
-        for i in ["ACH2", "ACH4", "ACH3", "ACH1"]:
+        ach_devices = ["ACH2", "ACH4", "ACH3", "ACH1"]
+        pcw_devices = ["PCW1 H0", "PCW1 H1", "PCW2 H1", "PCW UPS+1", "PCW UPS-1"]
+        cdu_devices = ["CDU1", "CDU2", "CDU3"]
+
+        for i in ach_devices:
 
             try:
                 if data_dict[i][i] == "Local ON" or data_dict[i][i] == "Warning On":
@@ -39,10 +43,10 @@ class DictForFermion:
                     self.out[i + "_Return"] = data_dict[i]["Outlet Temp"]
 
             except Exception:
-                pass  # there is nothing more to do that pass this
+                pass
 
         # PCWs - PCW1/PCW2 on H1 is changing
-        for x in ["PCW1 H0", "PCW1 H1", "PCW2 H1", "PCW UPS+1", "PCW UPS-1"]:
+        for x in pcw_devices:
 
             try:
                 if x == "PCW1 H0":
@@ -66,24 +70,24 @@ class DictForFermion:
                     pass
 
             except Exception:
-                pass  # there is nothing more to do that pass this
+                pass
 
         # CDUs
-        if "CDU1" and "CDU2" and "CDU3" in data_dict.keys():
+        if (dev for dev in cdu_devices) in data_dict.keys():
 
             try:
                 cdu_1_temp = 0
                 cdu_4_temp = 0
 
-                for i in ["CDU1", "CDU2", "CDU3"]:
+                for i in cdu_devices:
                     cdu_1_temp += float(data_dict[i]["t1"])
                     cdu_4_temp += float(data_dict[i]["t4"])
 
                 self.out["CDU_t1"] = str(cdu_1_temp / 3)[0:4]
                 self.out["CDU_t4"] = str(cdu_4_temp / 3)[0:4]
 
-            except Exception:
-                pass  # there is nothing more to do that pass this
+            except:
+                pass
 
         # time
         self.out["time"] = " ".join(time.asctime().split()[3:4])[0:-3]

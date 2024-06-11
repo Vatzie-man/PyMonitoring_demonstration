@@ -30,7 +30,7 @@ def retry(func, times=20, delay=30):
             if response:
                 return response
             else:
-                print(f"{" ".join(time.asctime().split()[1:4])} > Error running {func.__name__!r}.")
+                print(f"{' '.join(time.asctime().split()[1:4])} > Error running {func.__name__!r}.")
                 attempt += 1
                 time.sleep(delay)
 
@@ -76,7 +76,7 @@ class Mattermost:
         except Exception:
             return 0
 
-    def mm_edit(self, message, post_id, api_token=API_TOKEN, mattermost_url=MATTERMOST_URL):
+    def mm_edit(self, message, post_id, API_TOKEN=API_TOKEN, MATTERMOST_URL=MATTERMOST_URL):
         """Create a dictionary with the new post text"""
         updated_post = {
             "id": post_id,
@@ -84,25 +84,25 @@ class Mattermost:
         }
 
         # Define the API endpoint for updating a post
-        endpoint = f"{mattermost_url}/posts/{post_id}"
+        endpoint = f"{MATTERMOST_URL}/posts/{post_id}"
 
         # Set the authorization header with the access token
         headers = {
-            "Authorization": f"Bearer {api_token}",
+            "Authorization": f"Bearer {API_TOKEN}",
             "Content-Type": "application/json"
         }
 
         self.mm_edit_helper_request(endpoint, headers, updated_post)
 
-    def mm_get_post(self, post_id, mattermost_url=MATTERMOST_URL, api_token=API_TOKEN):
+    def mm_get_post(self, post_id, MATTERMOST_URL=MATTERMOST_URL, API_TOKEN=API_TOKEN):
         """Fetch post"""
         headers = {
-            "Authorization": f"Bearer {api_token}",
+            "Authorization": f"Bearer {API_TOKEN}",
             "Content-Type": "application/json",
         }
 
         # Define the API endpoint for updating a post
-        endpoint = f"{mattermost_url}/posts/{post_id}"
+        endpoint = f"{MATTERMOST_URL}/posts/{post_id}"
 
         response = self.mm_get_post_helper_request(endpoint, headers)
 
@@ -114,15 +114,15 @@ class Mattermost:
 
         return message
 
-    def mm_post(self, message, channel_id, mattermost_url=MATTERMOST_URL, api_token=API_TOKEN):
+    def mm_post(self, message, channel_id, MATTERMOST_URL=MATTERMOST_URL, API_TOKEN=API_TOKEN):
         """Create the headers with the authentication token"""
         headers = {
-            "Authorization": f"Bearer {api_token}",
+            "Authorization": f"Bearer {API_TOKEN}",
             "Content-Type": "application/json",
         }
 
         # Define the API endpoint for updating a post
-        endpoint = f"{mattermost_url}/posts"
+        endpoint = f"{MATTERMOST_URL}/posts"
 
         # Define the message payload
         message_payload = {
@@ -138,12 +138,12 @@ class Mattermost:
             post = self.mm_get_post(post_id)
 
             lst = [x.strip().split(":") for x in post.split("\n") if
-                   x != "\n" and len(x) > 4]  # len(x) == 4 is an empty line
+                   x != "'\n" and len(x) > 4]  # len(x) == 4 is an empty line
 
             out_dict = {}
 
             for pair in lst:
-                out_dict.update({pair[0].strip("\""): float(pair[1].strip())})
+                out_dict.update({pair[0].strip("\'"): float(pair[1].strip())})
 
         except Exception:
             out_dict = {"Powiadomienia": 503}
@@ -206,7 +206,7 @@ class MonitorChannels:
             response = self.new_messages_helper(url)
 
             if response:
-                post = response.json()["order"][0]  # get most new post
+                post = response.json()["order"][0]  # get newest post
                 time.sleep(1)
                 message = self.read_post(post)
 
@@ -223,5 +223,12 @@ class MonitorChannels:
         else:
             return new_message[0] if new_message else ""
 
-# out = MonitorChannels()
-# out.get_new_messages()
+def main() -> None:
+    out = MonitorChannels()
+    out.get_new_messages()
+
+if __name__ == '__main__':
+    main()
+
+
+

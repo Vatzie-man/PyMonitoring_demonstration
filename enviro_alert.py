@@ -1,4 +1,3 @@
-import sys
 import json
 import time
 
@@ -198,6 +197,9 @@ class Alert:
 
         return data
 
+def main() -> None:
+    o = Alert()
+    print(o.get_pcw_ach(["PCW3 H1", "ACH1"]))
 
-# o = Alert()
-# print(o.get_pcw_ach(["PCW3 H1", "ACH1"]))
+if __name__ == '__main__':
+    main()
