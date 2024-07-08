@@ -6,11 +6,12 @@ import typing
 import time
 
 from mattermost import Mattermost
-from _pym_settings import secrets_oft, secrets_main, secrets_mm
+from settings._pym_settings import secrets_oft, secrets_main, secrets_mm
 
 
 @dataclass
 class MessageAlerts:
+    """"""
     watsapp_destination: str = secrets_oft["call_me_bot_url"]
     whatsapp_apikey: str = secrets_oft["cal_me_bot_apikey"]
     mm = Mattermost()
@@ -40,7 +41,7 @@ class OutOfTolerance:
     channel_id = secrets_oft["person_settings"][name][1]
     data = None
     user_settings = None
-    devaices_prev_state = None
+    devaices_previous_state = None
 
     mm_monitor_channels = MonitorChannels()
     send_alerts = MessageAlerts()
@@ -51,8 +52,8 @@ class OutOfTolerance:
     zabbix_online: bool = False
 
     @staticmethod
-    def devaices_curr_state(data):
-        def there_is_no_status(dev):
+    def devaices_state_on_startup(data):
+        def try_get_ach_state(dev):
             try:
                 return data[dev][dev]
             except Exception:
@@ -60,22 +61,22 @@ class OutOfTolerance:
 
         return {
             # states
-            "ACH1": there_is_no_status("ACH1"),
-            "ACH2": there_is_no_status("ACH2"),
-            "ACH3": there_is_no_status("ACH3"),
-            "ACH4": there_is_no_status("ACH4"),
+            "ACH1": try_get_ach_state("ACH1"),
+            "ACH2": try_get_ach_state("ACH2"),
+            "ACH3": try_get_ach_state("ACH3"),
+            "ACH4": try_get_ach_state("ACH4"),
             "PCW1 H0": "Online",
             "PCW1 H1": "Online",
             "PCW2 H1": "Online",
             "PCW UPS+1": "Online",
             "PCW UPS-1": "Online",
             # PowerMonitoring alarms and warnings
-            "PowerMonitoring_status": True,
+            "PowerMonitoring_status_online": True,
             "high_priority": int(data["power_monitoring"]["high_priority"]),
             "mid_priority": int(data["power_monitoring"]["mid_priority"]),
             "low_priority": int(data["power_monitoring"]["low_priority"]),
             # Zabbix
-            "Zabbix": True,
+            "Zabbix_status_online": True,
             # CDUs temps
             "CDU1_t1_min": False,
             "CDU1_t1_max": False,
@@ -107,7 +108,8 @@ class OutOfTolerance:
             "PCW_UPS-1_return": False,
         }
 
-    def check(self, data: dict, opertation_settings: dict, notifications: bool, whatsapp: bool, check_channels: bool, zabbix_online: bool) -> [str, bool]:
+    def check(self, data: dict, opertation_settings: dict, notifications: bool, whatsapp: bool, check_channels: bool, zabbix_online: bool) -> [str,
+                                                                                                                                               bool]:
         """Main function in this file: checks devicase parameters against desired parameters"""
         self.data = data
         self.zabbix_online = zabbix_online
@@ -129,7 +131,7 @@ class OutOfTolerance:
 
     def set_first_program_run(self) -> None:
         """Assigns entry data"""
-        self.devaices_prev_state = self.devaices_curr_state(self.data)
+        self.devaices_previous_state = self.devaices_state_on_startup(self.data)
         self.first_program_run = False
 
     def monitor_group_channels_for_posts(self, check_channels) -> None:
@@ -146,14 +148,14 @@ class OutOfTolerance:
     def power_monitoring_checks(self) -> None:
         """ PowerMonitoring alarm check """
         if self.data["power_monitoring"]["is_there_mp_data"]:
-            self.devaices_prev_state["PowerMonitoring_status"] = True
+            self.devaices_previous_state["PowerMonitoring_status_online"] = True
 
             for alert in (self.data["power_monitoring"].keys() - {"is_there_mp_data"}):
                 message = self.check_power_monitoring_alerts(alert)
                 self.send_alerts.send_alerts(message, self.send_alert_settings)
 
-        if not (self.data["power_monitoring"]["is_there_mp_data"]) and (self.devaices_prev_state["PowerMonitoring_status"]):
-            self.devaices_prev_state["PowerMonitoring_status"] = False
+        if not (self.data["power_monitoring"]["is_there_mp_data"]) and (self.devaices_previous_state["PowerMonitoring_status_online"]):
+            self.devaices_previous_state["PowerMonitoring_status_online"] = False
             message = f"Brak danych z PowerMonitoring."
             self.send_alerts.send_alerts(message, self.send_alert_settings)
 
@@ -161,12 +163,12 @@ class OutOfTolerance:
         """Checks whatever ther is any alarm from PowerMonitoring"""
         message_keys = {"high_priority": "PowerMonitoring High", "mid_priority": "PowerMonitoring Medium", "low_priority": "PowerMonitoring Low"}
 
-        if int(self.data["power_monitoring"][alert]) > self.devaices_prev_state[alert]:
+        if int(self.data["power_monitoring"][alert]) > self.devaices_previous_state[alert]:
             message = f"{message_keys[alert]}: {self.data['power_monitoring'][alert]}"
-            self.devaices_prev_state[alert] = int(self.data["power_monitoring"][alert])
+            self.devaices_previous_state[alert] = int(self.data["power_monitoring"][alert])
             return message
         else:
-            self.devaices_prev_state[alert] = int(self.data["power_monitoring"][alert])
+            self.devaices_previous_state[alert] = int(self.data["power_monitoring"][alert])
             return None
 
     def zabbix_checks(self) -> None:
@@ -176,11 +178,11 @@ class OutOfTolerance:
             self.zabbix_temps_checks()
             self.zabbix_alarms_and_warnings_checks()
 
-            self.devaices_prev_state["Zabbix"] = True
+            self.devaices_previous_state["Zabbix_status_online"] = True
 
         # if there is no data from zabbix in two request on the raw then alert message will be sent; though single occurances of no data is frequnent
-        if not self.zabbix_online and self.devaices_prev_state["Zabbix"]:
-            self.devaices_prev_state["Zabbix"] = False
+        if not self.zabbix_online and self.devaices_previous_state["Zabbix_status_online"]:
+            self.devaices_previous_state["Zabbix_status_online"] = False
             message = f"Brak danych z Zabbix."
             self.send_alerts.send_alerts(message, self.send_alert_settings)
 
@@ -195,15 +197,15 @@ class OutOfTolerance:
         """"""
         for dev in ["CDU1", "CDU2", "CDU3"]:
 
-            if int(self.data[dev]["numalarms"]) > self.devaices_prev_state[f"{dev}_numalarms"]:
-                message = f'{dev}: {self.data[dev]["numalarms"]}'
+            if int(self.data[dev]["numalarms"]) > self.devaices_previous_state[f"{dev}_numalarms"]:
+                message = f'{dev} Alarms: {self.data[dev]["numalarms"]}'
                 self.send_alerts.send_alerts(message, self.send_alert_settings)
-                self.devaices_prev_state[f"{dev}_numalarms"] = int(self.data[dev]["numalarms"])
+                self.devaices_previous_state[f"{dev}_numalarms"] = int(self.data[dev]["numalarms"])
 
-            if int(self.data[dev]["numwarnings"]) > self.devaices_prev_state[f"{dev}_numwarnings"]:
-                message = f'{dev}: {self.data[dev]["numwarnings"]}'
+            if int(self.data[dev]["numwarnings"]) > self.devaices_previous_state[f"{dev}_numwarnings"]:
+                message = f'{dev}: Warnings: {self.data[dev]["numwarnings"]}'
                 self.send_alerts.send_alerts(message, self.send_alert_settings)
-                self.devaices_prev_state[f"{dev}_numwarnings"] = int(self.data[dev]["numwarnings"])
+                self.devaices_previous_state[f"{dev}_numwarnings"] = int(self.data[dev]["numwarnings"])
 
     def ach_checks(self) -> None:
         """ACH's operations and temp comparisons"""
@@ -227,27 +229,20 @@ class OutOfTolerance:
             try:
                 message = self.check_temp(device, state="PCW_return")
                 self.send_alerts.send_alerts(message, self.send_alert_settings)
-                # if check_temp fails then check_status will not be called
-                self.check_status(device)
 
             except Exception:
-                message = self.handle_offline(device)
-                # alerts are send to offten on windows
-                # self.send_alerts.send_alerts(message, self.send_alert_settings)
+                pass  # there is no need to deal with that
 
     def check_status(self, dev: str) -> Union[str, None]:
-        """Checks the ACH devices state: ON/OFF/Stadby; and assign online for PCW"""
-        if dev[0:3] == "PCW":
-            self.devaices_prev_state[dev] = "Online"
-
-        if (self.devaices_prev_state[dev] in ("Warning On", "Local ON")) != (self.data[dev][dev] in ("Warning On", "Local ON")):
+        """Checks the ACH devices state: ON/OFF/Stadby"""
+        if (self.devaices_previous_state[dev] in ("Warning On", "Local ON")) != (self.data[dev][dev] in ("Warning On", "Local ON")):
 
             value = "On" if self.data[dev][dev] in ("Warning On", "Local ON") else self.data[dev][dev]
             message = f"{dev}: {value}"
-            self.devaices_prev_state[dev] = self.data[dev][dev]
+            self.devaices_previous_state[dev] = self.data[dev][dev]
             return message
         else:
-            self.devaices_prev_state[dev] = self.data[dev][dev]
+            self.devaices_previous_state[dev] = self.data[dev][dev]
             return None
 
     def check_temp(self, x: str, state: str):
@@ -256,14 +251,14 @@ class OutOfTolerance:
 
         if self.user_settings[y + settings_key] < float(self.data[x][data_key]):
 
-            if self.devaices_prev_state[z + settings_key]:
+            if self.devaices_previous_state[z + settings_key]:
                 value = float(self.data[x][data_key])
                 message = f"{x} {message_key}: {value}C"
-                self.devaices_prev_state[z + settings_key] = False
+                self.devaices_previous_state[z + settings_key] = False
                 return message
 
         else:
-            self.devaices_prev_state[z + settings_key] = True
+            self.devaices_previous_state[z + settings_key] = True
             return None
 
     @staticmethod
@@ -286,9 +281,9 @@ class OutOfTolerance:
 
     def handle_offline(self, dev: str) -> Union[str, None]:
         """This function is called if an Exception has been rised during other checks"""
-        if self.devaices_prev_state[dev] == "Offline":
+        if self.devaices_previous_state[dev] == "Offline":
             return None
         else:
-            self.devaices_prev_state[dev] = "Offline"
+            self.devaices_previous_state[dev] = "Offline"
             message = f"{dev}: Offline."
             return message

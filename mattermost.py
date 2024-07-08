@@ -3,7 +3,7 @@ import json
 import time
 import functools
 
-from _pym_settings import secrets_mm
+from settings._pym_settings import secrets_mm
 
 MATTERMOST_URL = secrets_mm["mm_url"]
 API_TOKEN = secrets_mm["mm_pymonitoring_apikey"]
@@ -23,7 +23,9 @@ def retry(func, times=20, delay=30):
     @functools.wraps(func)
     def wraper(*args, **kwargs):
 
+        response = None
         attempt = 0
+
         while attempt < times:
 
             response = func(*args, **kwargs)
@@ -50,6 +52,7 @@ class Mattermost:
             response = requests.put(endpoint, json=updated_post, headers=headers, timeout=10)
             if response.status_code == 200:
                 return response
+            print("Check API Key")
             return 0
         except Exception:
             return 0
@@ -223,12 +226,11 @@ class MonitorChannels:
         else:
             return new_message[0] if new_message else ""
 
+
 def main() -> None:
     out = MonitorChannels()
     out.get_new_messages()
 
+
 if __name__ == '__main__':
     main()
-
-
-

@@ -4,15 +4,15 @@ import time
 from helpers.chrome_options import get_chrome_options
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
-from _pym_settings import ACH_comp_fans_pumps, ACH_main_parameters
+from settings._pym_settings import ACH_comp_fans_pumps, ACH_main_parameters
 
 
 class AchOverview:
     UNIT_STATUS_PARAMS = {
         1: "ON",
-        2: "Service",
+        2: "MNT",
         3: "OFF",
-        4: "Alarm"
+        4: "ALM"
     }
 
     def __init__(self):
@@ -27,18 +27,18 @@ class AchOverview:
 
         out = dict()
         try:
-            out[
-                "Pumps"] = (f"Pump 1: {AchOverview.UNIT_STATUS_PARAMS.get(data[1]['value'][0])} | "
-                            f"Pump 2: {AchOverview.UNIT_STATUS_PARAMS.get(data[1]['value'][1])}")
+            out["Pumps"] = \
+                (f"Pump 1: {AchOverview.UNIT_STATUS_PARAMS.get(data[1]['value'][0])} | "
+                 f"Pump 2: {AchOverview.UNIT_STATUS_PARAMS.get(data[1]['value'][1])}")
 
             out["Fans1"] = int(data[3]["value"][0])
             out["Fans2"] = int(data[4]["value"][0])
 
             out["Compressors"] = (
-                f"Comp 1: {AchOverview.UNIT_STATUS_PARAMS.get(data[2]['value'][0])} | "
+                f" Comp 1: {AchOverview.UNIT_STATUS_PARAMS.get(data[2]['value'][0])} | "
                 f"Comp 2: {AchOverview.UNIT_STATUS_PARAMS.get(data[2]['value'][1])} | "
                 f"Comp 3: {AchOverview.UNIT_STATUS_PARAMS.get(data[2]['value'][3])} | "
-                f"Comp 4: {AchOverview.UNIT_STATUS_PARAMS.get(data[2]['value'][4])}")
+                f"Comp 4: {AchOverview.UNIT_STATUS_PARAMS.get(data[2]['value'][4])} ")
 
         except Exception:
             return ""
@@ -99,15 +99,19 @@ class AchOverview:
 
             temp["Time"] = f"{' '.join(time.asctime().split()[1:4])}"
             try:
-                temp["Fan"] = (
-                    f"Fan 1: {('|' * int(round(self.out[k]['second']['Fans1'] * 3 / 10))).ljust(30, '.')} {self.out[k]['second']['Fans1']}% | "
-                    f"Fan 2: {('|' * int(round(self.out[k]['second']['Fans2'] * 3 / 10))).ljust(30, '.')} {self.out[k]['second']['Fans2']}%")
+
+                temp["Fan 1 on"] = f"{int(round(self.out[k]['second']['Fans1']))}"
+                temp["Fan 1 off"] = f"{100 - int(round(self.out[k]['second']['Fans1']))}" if self.out[k]['second']['Fans1'] > 0 else f"102"
+                temp["Fan 1 speed"] = f"{self.out[k]['second']['Fans1']}%"
+
+                temp["Fan 2 on"] = f"{int(round(self.out[k]['second']['Fans2']))}"
+                temp["Fan 2 off"] = f"{100 - int(round(self.out[k]['second']['Fans2']))}" if self.out[k]['second']['Fans2'] > 0 else f"102"
+                temp["Fan 2 speed"] = f"{self.out[k]['second']['Fans2']}%"
 
                 temp["Compressor"] = f"{self.out[k]['second']['Compressors']}"
                 temp["Pump"] = f"{self.out[k]['second']['Pumps']}"
-                temp["Temp and Free"] = (f"Setpoint 1: {self.out[k]['main']['Temp Setpoint 1']} | "
-                                         f"Setpoint 2: {self.out[k]['main']['Temp Setpoint 2']} | "
-                                         f"Setpoint 3: {self.out[k]['main']['Temp Setpoint 3']} | "
+
+                temp["Temp and Free"] = (f"Setpoint: {self.out[k]['main']['Temp Setpoint 1']} | "
                                          f"Free Cooling Valve: {self.out[k]['main']['Free Cooling Valve']}")
 
                 temp["Condensing Pressure"] = (f"Condensing Pressure (HP) C1: {self.out[k]['main']['Condensing Pressure (HP) C1']} | "
@@ -150,13 +154,13 @@ class AchOverview:
         out = self.make_str()
         return out
 
+
 def main() -> None:
     o = AchOverview()
     out = o.get_ach_overview_info()
     for k, v in out.items():
         print(k, v)
+
+
 if __name__ == '__main__':
     main()
-
-
-

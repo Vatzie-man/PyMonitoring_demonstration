@@ -3,7 +3,7 @@ import requests
 
 from pyzabbix import ZabbixAPI
 from collections import defaultdict
-from _pym_settings import secrets_zabbix
+from settings._pym_settings import secrets_zabbix
 
 ZABBIX_URL = secrets_zabbix["zabbix_url"]
 ZABBIX_USER = secrets_zabbix["zabbix_user"]

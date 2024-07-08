@@ -1,6 +1,5 @@
 from django.shortcuts import render
 from django.db.models import Q
-from .functions import make_str
 from pages.models import Project
 
 

@@ -1,10 +1,7 @@
 
-
-
-
 {% extends "base.html" %}
 {% csrf_token %}
-
+{% load my_filters %}
 {% block page_content %}
 
 <body>
@@ -46,49 +43,94 @@
     {% endif %}
 
     {% if post.alert == 'pm' %}
-        <h4><span style="color: #003366">{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</span>
-            <span style="color: grey">&nbsp;&nbsp;{{ post.description }}</span></h4>
+        <h5><span style="color: #003366">{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</span>
+            <span style="color: grey">&nbsp;&nbsp;{{ post.description }}</span></h5>
         <p></p>
     {% endif %}
 
     {% if post.alert == 'non' %}
-        <h4><span style="color: #003366"><b>{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</b></span>
-            <span style="color: dark grey">{{ post.description }}</span></h4>
+        <h5><span style="color: #003366">{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</span>
+            <span style="color: dark grey">{{ post.description }}</span></h5>
         <p></p>
     {% endif %}
 
-    {% if post.alert == 'view_ach_detail_home' %}
-        <h6><span style="color: grey">{{ post.description }}</span></h6>
+    {% if post.alert == 'view_ach_detail_fans' %}
+        <h6>
+            <span style="color: black"><text>Fan 1: </text></span>
+            <span style="color: darkcyan"><b><b><b>{{post.txt_1|percentage_bar}}</b></b></b></span>
+            <span style="color: azure"><b><b><b>{{post.txt_2|percentage_bar}}</b></b></b></span>
+            <span style="color: dark grey"><b>{{post.txt_1|length_to_number}}</b></span>
+            <span style="color: black"><text> | Fan 2: </text></span>
+            <span style="color: darkcyan"><b><b><b>{{post.txt_3|percentage_bar}}</b></b></b></span>
+            <span style="color: azure"><b><b><b>{{post.txt_4|percentage_bar}}</b></b></b></span>
+            <span style="color: dark grey"><b>{{post.txt_3|length_to_number}}</b></span>
+        </h6>
     {% endif %}
 
-     {% if post.alert == 'Local ON' %}
+    {% if post.alert == 'view_ach_detail_compressors' %}
+
+        {% if post.description|compressors:0 == ' Comp 1: OFF ' %}
+            <h6><span style="color: lightgray">{{ post.description|compressors:0 }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text>&nbsp;</span>
+        {% elif post.description|compressors:0 == ' Comp 1: ON ' %}
+            <span style="color: green"><b>{{ post.description|compressors:0 }}</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text>&nbsp;</span>
+        {% else %}
+            <span style="color: red">{{ post.description|compressors:0 }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text>&nbsp;</span>
+        {% endif %}
+
+        {% if post.description|compressors:1 == ' Comp 2: OFF ' %}
+            <span style="color: lightgray">{{ post.description|compressors:1 }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text>&nbsp;</span>
+        {% elif post.description|compressors:1 == ' Comp 2: ON ' %}
+            <span style="color: green"><b>{{ post.description|compressors:1 }}</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text>&nbsp;</span>
+        {% else %}
+            <span style="color: red">{{ post.description|compressors:1 }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text>&nbsp;</span>
+        {% endif %}
+
+        {% if post.description|compressors:2 == ' Comp 3: OFF ' %}
+            <span style="color: lightgray">{{ post.description|compressors:2 }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text>&nbsp;</span>
+        {% elif post.description|compressors:2 == ' Comp 3: ON ' %}
+            <span style="color: green"><b>{{ post.description|compressors:2 }}</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text>&nbsp;</span>
+        {% else %}
+            <span style="color: red">{{ post.description|compressors:2 }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text>&nbsp;</span>
+        {% endif %}
+
+         {% if post.description|compressors:3 == ' Comp 4: OFF ' %}
+            <span style="color: lightgray">{{ post.description|compressors:3 }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text>&nbsp;</span>
+        {% elif post.description|compressors:3 == ' Comp 4: ON ' %}
+            <span style="color: green"><b>{{ post.description|compressors:3 }}</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text>&nbsp;</span>
+        {% else %}
+            <span style="color: red">{{ post.description|compressors:3 }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text></span></h6>
+        {% endif %}
+
+    {% endif %}
+
+    {% if post.alert == 'Local ON' %}
         <h4><span style="color: #009900"><b><b><b>{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</b></b></b></span>
-            <span style="color: dark grey">{{ post.description }}</span></h4>
+            <span style="color: grey">{{ post.description }}</span></h4>
     {% endif %}
 
     {% if post.alert == 'Warning On' %}
         <h4><span style="color: #009900"><b><b><b>{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</b></b></b></span>
-            <span style="color: dark grey">{{ post.description }}</span></h4>
+            <span style="color: grey">{{ post.description }}</span></h4>
     {% endif %}
 
     {% if post.alert == 'Standby' %}
         <h4><span style="color: #ff9900"><b><b><b>{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</b></b></b></span>
-            <span style="color: dark grey">{{ post.description }}</span></h4>
+            <span style="color: grey">{{ post.description }}</span></h4>
     {% endif %}
 
     {% if post.alert == 'Local OFF' %}
-        <h4><span style="color: red"><b><b><b>{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</b></b></b></span>
-            <span style="color: dark grey">{{ post.description }}</span></h4>
+    <h4><span style="color: red"><b><b><b>{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</b></b></b></span>
+            <span style="color: grey">{{ post.description }}</span></h4>
     {% endif %}
 
     {% if post.alert == 'Alarm ON' %}
         <h4><span style="color: red"><b><b><b>{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</b></b></b></span>
-            <span style="color: dark grey">{{ post.description }}</span></h4>
+            <span style="color: grey">{{ post.description }}</span></h4>
     {% endif %}
 
     {% if post.alert == 'Power Failure' %}
         <h4><span style="color: red"><b><b><b>{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</b></b></b></span>
-            <span style="color: dark grey">{{ post.description }}</span></h4>
+            <span style="color: grey">{{ post.description }}</span></h4>
     {% endif %}
 
     {% if post.alert == 'Offline' %}
@@ -98,14 +140,13 @@
     {% endif %}
 
     {% if post.alert == 'line_after_cdu3' %}
-        <h4><span style="color: #003366"><b>{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</b></span><span style="color: dark grey">{{ post.description }}</span></h4>
+        <h5><span style="color: #003366">{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: dark grey">{{ post.description }}</span></h5>
         <p><h6><span style="color: grey"><b>____________________________________________________________________________________</b></span></h6></p>
     {% endif %}
 
     {% if post.alert == 'line_before_pcw1_h0' %}
         <p><h6><span style="color: grey"><b>____________________________________________________________________________________</b></span></h6></p>
-        <h4><span style="color: #003366"><b>{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</b></span>
-        <span style="color: dark grey">{{ post.description }}</span></h4>
+            <h5><span style="color: #003366">{{ post.title }}&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: dark grey">{{ post.description }}</span></h5>
         <p></p>
     {% endif %}
 

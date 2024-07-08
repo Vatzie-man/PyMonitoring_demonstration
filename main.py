@@ -2,7 +2,7 @@ import json
 import time
 import shutil
 
-from _pym_settings import secrets_main, data_base
+from settings._pym_settings import secrets_main, data_base
 from dict_for_fermion import Dict_For_Fermion
 from enviro_alert import Alert
 from make_MM_str import MmStr
@@ -11,8 +11,8 @@ from out_of_tolerance import OutOfTolerance
 from zabbix import Zabbix
 from power_monitoring import PowerMonitoringAlert
 from ach_overview import AchOverview
-from sqlitedb import DjangoDataBase
-from read_options_db import get_options
+from django_db.create_db_for_django_page import ModifyDB
+from gui_options_db.read_options_db import get_opt
 
 # from gui_tk import controller_run
 not_plain_mode = None
@@ -39,7 +39,7 @@ settings_for_oft = {
 
 
 class Options:
-    """Basic seteups on the go"""
+    """Basic setups on the go"""
 
     def __init__(self):
         self.time_program_started: str = " ".join(time.asctime().split()[1:4])
@@ -48,11 +48,20 @@ class Options:
     def check_options_settings_from_db(self):
 
         global not_plain_mode, data_formatted
-        options = get_options()
+        options = get_opt()
         if options != self.current_options_settings:
             order = ["notifications", "whatsapp", "check channels", "display_mode", "time_delay"]
+            displayed_option_name = {
+                "notifications": "Notifications",
+                "whatsapp": "Whatsapp",
+                "check channels": "Check channels",
+                "display_mode": "Display mode",
+                "time_delay": "Time delay"
+            }
+            print("\n" * 30)
             print(self.time_program_started)
-            print(", ".join([f"{order[option]}: {options[order[option]]}" for option in sorted(map(order.index, options))]))
+            print(", ".join([f"{displayed_option_name[order[option]]}: {options[order[option]]}" for option in sorted(map(order.index, options))]))
+            print("\n" * 3)
 
         self.current_options_settings = options
 
@@ -76,16 +85,16 @@ class Options:
 
 
 class ModifyDjangoDB:
-    """Modifys db for Django webpage"""
+    """Modify db for Django webpage"""
 
     def __init__(self):
         self.primary_db: str = data_base["primary_db"]
         self.replica_db: str = data_base["replica_db"]
 
-        self.djangodb = DjangoDataBase()
+        self.django_db = ModifyDB()
 
     def database_operations(self, data):
-        self.djangodb.db_modification(data)
+        self.django_db.db_modification(data)
         self.update_replica_database()
 
     def update_replica_database(self):
@@ -109,7 +118,7 @@ class Executor:
 
         self.settings_for_oft: dict = dict()
         self.data: dict = dict()
-        self.out_powermonitoring: dict = dict()
+        self.out_power_monitoring: dict = dict()
         self.out_enviro: dict = dict()
         self.out_zabbix: dict = dict()
         self.ach_overview: dict = dict()
@@ -120,7 +129,7 @@ class Executor:
         self.mm = Mattermost()
         self.mm_str = MmStr()
         self.fermion = Dict_For_Fermion()
-        self.powermonitoring = PowerMonitoringAlert()
+        self.power_monitoring = PowerMonitoringAlert()
         self.ACH_overview = AchOverview()
 
         self.modify_db = ModifyDjangoDB()
@@ -138,7 +147,7 @@ class Executor:
             (self.alert_notifications, self.whatsapp, self.check_channels, self.not_plain_mode,
              self.data_formatted, self.fermion_watcher, self.wait_time, self.settings_for_oft) = self.options
 
-            self.out_powermonitoring = self.powermonitoring.get_power_monitoring_alerts()
+            self.out_power_monitoring = self.power_monitoring.get_power_monitoring_alerts()
             time.sleep(self.wait_time * 2)
 
             self.out_enviro = self.alert.get_pcw_ach(Executor.LST_OF_DEVS)
@@ -161,7 +170,7 @@ class Executor:
         if self.out_zabbix["status"]:
             self.data = {
                 "Listening": "",
-                "power_monitoring": self.out_powermonitoring,
+                "power_monitoring": self.out_power_monitoring,
                 "ach_overview": self.ach_overview,
 
                 "Ares": self.out_zabbix["data"]["Total power usage"],
@@ -173,7 +182,7 @@ class Executor:
         else:
             self.data = {
                 "Listening": "",
-                "power_monitoring": self.out_powermonitoring,
+                "power_monitoring": self.out_power_monitoring,
                 "ach_overview": self.ach_overview
             }
         # add to data all key-value pairs from out_enviro; these might change
