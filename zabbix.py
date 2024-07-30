@@ -3,7 +3,7 @@ import requests
 
 from pyzabbix import ZabbixAPI
 from collections import defaultdict
-from _pym_settings import secrets_zabbix
+from settings._pym_settings import secrets_zabbix
 
 ZABBIX_URL = secrets_zabbix["zabbix_url"]
 ZABBIX_USER = secrets_zabbix["zabbix_user"]
@@ -21,13 +21,16 @@ class Zabbix:
 
     @staticmethod
     def helper(data):
+
         for k, v in data.items():
+
             if k == "Total power usage":
                 data[k] = data[k]["lastvalue"]
 
             if k != "Total power usage":
                 data[k] = {
                     "pumpspeed": data[k]["pumpspeed"]["lastvalue"],
+                    "valve": data[k]["valvefeedback"]["lastvalue"],
 
                     "t1": data[k]["t1"]["lastvalue"],
                     "t2": data[k]["t2"]["lastvalue"],
@@ -60,14 +63,17 @@ class Zabbix:
 
     def login(self):
         self.zapi = ZabbixAPI(ZABBIX_URL, session=session)
-        self.zapi.login(ZABBIX_USER, ZABBIX_PASS)
+        try:
+            self.zapi.login(ZABBIX_USER, ZABBIX_PASS)  # when server was down it caused program crash
+        except Exception:
+            print("Can't login to zabbix.")
 
     def get_data(self):
         for retry_attempt in range(Zabbix.max_retries):
             try:
                 return self.zapi.do_request(self.method, self.params)
             except Exception as e:
-                print(f"{" ".join(time.asctime().split()[1:4])} > Unable to pull Zabbix data")
+                print(f"{' '.join(time.asctime().split()[1:4])} > Unable to pull Zabbix data")
                 time.sleep(Zabbix.retry_delay)
                 self.login()
 
@@ -79,6 +85,12 @@ class Zabbix:
             out = response["result"][0:]
 
             data = [[self.wanted_hosts[x["hostid"]], x] for x in out if x["hostid"] in self.wanted_hosts.keys()]
+
+            # print(data)
+            # for k, v in response["result"][1].items():
+            #     print(k, v)
+
+
             out = defaultdict(dict)
             out["Total power usage"] = {
                 k: x for k, x in response["result"][0].items() if
@@ -91,3 +103,12 @@ class Zabbix:
             return self.helper(out)
 
         return {"status": False}
+
+
+def main() -> None:
+    get_data = Zabbix()
+    data = get_data.request()
+    print(data)
+
+if __name__ == '__main__':
+    main()

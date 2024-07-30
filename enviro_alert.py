@@ -1,9 +1,8 @@
-import sys
 import json
 import time
 
 from helpers.chrome_options import get_chrome_options
-from _pym_settings import secrets_enviro
+from settings._pym_settings import secrets_enviro
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import WebDriverException
@@ -46,7 +45,8 @@ class Alert:
         0: "Local ON",
         2: "Local OFF",
         8: "Power Failure",
-        9: "Alarm ON"
+        9: "Alarm ON",
+        7: "No Water Flow"
     }
 
     def __init__(self):
@@ -95,15 +95,6 @@ class Alert:
                 "RH": ""
             }
 
-            # return {
-            #     dev: "Offline",
-            #     "Supply Air": 0,
-            #     "Return Air": 0,
-            #     "RH": 0,
-            #     "Fan Speed": 0,
-            #     "Cooling": 0
-            # }
-
         try:
             data = set_pcw_readings()
         except Exception:
@@ -117,8 +108,8 @@ class Alert:
         def set_ach_readings():
             data = json.loads(page_source[131:-20])
 
-            # if the key is not in unit_status_parms to catch that rare Key
-            other = str(*data["values"][11]["value"])
+            # if the key is not in unit_status_parms then get that Key
+            other = str(*data["values"][11]["value"]) + ": Stan nieokreślony."
 
             data = {
                 dev: Alert.UNIT_STATUS_PARAMS.get(int(*data["values"][11]["value"]), other),
@@ -139,6 +130,7 @@ class Alert:
                 dev: self.DEVs_prev_states[dev],
                 "Inlet Temp": 0.0,
                 "Outlet Temp": 0.0,
+                "Ambient": 0,
                 "Pumps": 0,
                 "Compressors": 0,
                 "Fans": 0,
@@ -163,9 +155,10 @@ class Alert:
         return data
 
     def get_devices(self, dev, dict_of_dev, driver):
+        data = {}
 
         def fetch_dev_from_http():
-            data = {}
+            nonlocal data
             driver.get(dict_of_dev["server"][dev])
             page_source = driver.page_source
             dev_type = self.device_type(dev)
@@ -176,7 +169,7 @@ class Alert:
             return data
 
         def default_if_http_request_fails(e):
-            if_no_connection_timed_out = {}
+            nonlocal data
             if "ERR_CONNECTION_TIMED_OUT" in str(e):
                 if dev[0:3] == "PCW":
                     data = {
@@ -185,19 +178,31 @@ class Alert:
                         "RH": ""
                     }
                 else:
-                    # if there is not any data for ACH devices Offline status is assigned
                     data = {dev: "Offline"}
 
-                return data
-            return if_no_connection_timed_out
+            return data
 
-        try:
-            data = fetch_dev_from_http()
-        except WebDriverException as e:
-            data = default_if_http_request_fails(e)
+        max_retries = 3
+        for attempt in range(max_retries):
+
+            try:
+                data = fetch_dev_from_http()
+                break
+
+            except WebDriverException as e:
+                if attempt < max_retries - 1:
+                    time.sleep(10)
+
+                else:
+                    data = default_if_http_request_fails(e)
 
         return data
 
 
-# o = Alert()
-# print(o.get_pcw_ach(["PCW3 H1", "ACH1"]))
+def main() -> None:
+    o = Alert()
+    print(o.get_pcw_ach(["PCW3 H1", "ACH1"]))
+
+
+if __name__ == '__main__':
+    main()

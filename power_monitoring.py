@@ -2,7 +2,7 @@ import json
 import time
 
 from helpers.chrome_options import get_chrome_options
-from _pym_settings import power_monitoring
+from settings._pym_settings import power_monitoring
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import WebDriverException
@@ -88,16 +88,30 @@ class PowerMonitoringAlert:
 
     def get_power_monitoring_alerts(self):
 
-        try:
-            self.driver.get(URL_DATA)
-            page_source = self.driver.page_source
+        data = {}
+        max_retries = 3
 
-            data = self.extract_data(page_source=page_source)
-        except WebDriverException:
-            print("WebDriverException")
-            data = {"is_there_mp_data": False, "high_priority": 0, "mid_priority": 0, "low_priority": 0}
+        for attempt in range(max_retries):
+
+            try:
+                self.driver.get(URL_DATA)
+                page_source = self.driver.page_source
+                data = self.extract_data(page_source=page_source)
+                break
+
+            except WebDriverException:
+                if attempt < max_retries - 1:
+                    time.sleep(10)
+                else:
+                    data = {"is_there_mp_data": False, "high_priority": 0, "mid_priority": 0, "low_priority": 0}
 
         return data
 
-# o = PowerMonitoringAlert()
-# print(o.get_power_monitoring_alerts())
+
+def main() -> None:
+    o = PowerMonitoringAlert()
+    print(o.get_power_monitoring_alerts())
+
+
+if __name__ == '__main__':
+    main()

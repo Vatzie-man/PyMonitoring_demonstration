@@ -1,37 +1,33 @@
 import tkinter as tk
 from tkinter import ttk
-import sqlite3
+from gui_options_db.db_items import (
+    get_options,
+    update_item,
+)
 
 
 class Model:
 
     def __init__(self):
-        self.connection = sqlite3.connect("_options.db")
-        self.cursor = self.connection.cursor()
-        self.cursor.execute("CREATE TABLE IF NOT EXISTS options (option TEXT PRIMARY KEY, state INTEGER)")
+        self.get_options = get_options
+        self.update_item = update_item
 
     def update_options_text(self, options):
         for option, state in options.items():
-
             if isinstance(state, tk.BooleanVar):
-                state = state.get()
-            self.cursor.execute("INSERT OR REPLACE INTO options VALUES (?, ?)", (option, bool(state)))
-        self.connection.commit()
+                state = bool(state.get())
+            self.update_item(option, state)
 
     def update_radio_choice(self, radio_choice):
         if isinstance(radio_choice, tk.StringVar):
-            radio_choice = radio_choice.get()
-        self.cursor.execute("INSERT OR REPLACE INTO options VALUES (?, ?)", ("display_mode", radio_choice))
-        self.connection.commit()
+            self.update_item("display_mode", radio_choice.get())
 
     def update_combo_choice(self, combo_choice):
         if isinstance(combo_choice, tk.StringVar):
-            combo_choice = combo_choice.get()
-        self.cursor.execute("INSERT OR REPLACE INTO options VALUES (?, ?)", ("time_delay", combo_choice))
-        self.connection.commit()
+            self.update_item("time_delay", combo_choice.get())
 
     def get_options(self):
-        options = self.cursor.execute("select option, state from options")
+        options = self.get_options()
         return options
 
 
@@ -52,9 +48,11 @@ class App(tk.Tk):
 
         options = self.model.get_options()
 
-        rows = options.fetchall()
+        options_list: list = list()
+        for x in range(len(options)):
+            options_list.append((options[x].option, options[x].state))
 
-        for row in rows:
+        for row in options_list:
             if row[0] == "display_mode":
                 self.model.update_radio_choice(row[1])
                 self.radio_choice.set(row[1])
@@ -99,7 +97,7 @@ class App(tk.Tk):
         def update_combo_choice(event=None) -> None:
             self.model.update_combo_choice(self.combo_choice)
 
-        combo_label = tk.Label(self, text="         Wait time(s):", fg="blue")
+        combo_label = tk.Label(self, text="               Seconds delay:", fg="blue")
         combo_label.pack(anchor="nw")
         combo_options = ["1", "2", "3", "4", "5"]
         combo = ttk.Combobox(self, textvariable=self.combo_choice, values=combo_options)

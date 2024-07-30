@@ -1,7 +1,7 @@
 import time
 import requests
 from mattermost import Mattermost
-from _pym_settings import secrets_oft, secrets_main, secrets_mm
+from settings._pym_settings import secrets_oft, secrets_main, secrets_mm
 
 destination: str = secrets_oft["call_me_bot_url"]
 apikey: str = secrets_oft["cal_me_bot_apikey"]
@@ -22,7 +22,7 @@ def connections_channels_checks() -> None:
     requests.post(dtp_destination_test + "Test_DTP" + dtp_apikey_test)
     time.sleep(1)
     # prevent apikey to get old
-    mm.mm_edit(f"**Powyżej aktualne nastawy.** ({str(*time.asctime().split()[3:4])})", vatzie_post_to_edit, vatzie_mm_api_token)
+    # mm.mm_edit(f"**Powyżej aktualne nastawy.** ({str(*time.asctime().split()[3:4])})", vatzie_post_to_edit, vatzie_mm_api_token)
 
 
 connections_channels_checks()
