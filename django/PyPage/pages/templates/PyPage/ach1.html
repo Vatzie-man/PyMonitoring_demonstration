@@ -1,122 +1,40 @@
+
 {% extends "base.html" %}
 {% csrf_token %}
-{% load my_filters %}
+
 {% block page_content %}
-
-<head>
-
-    <style>
-
-        .left-text {
-        position: absolute;
-        margin-left: 325px;
-        white-space: nowrap;
-        }
-
-    </style>
-</head>
 
 <body>
 <header class="site-header">
-    <nav class="navbar navbar-expand-md navbar-dark bg-steel fixed-top">
-        <div class="container">
+      <nav class="navbar navbar-expand-md navbar-dark bg-steel fixed-top">
+          <div class="container">
             <div class="collapse navbar-collapse" id="navbarToggle">
-                <div class="navbar-nav mr-auto">
-                    <a class="nav-item nav-link" href="{% url 'home' %}">Home</a>
-                    <a class="nav-item nav-link" href="{% url 'ach' %}">Dach</a>
-                    <a class="nav-item nav-link" href="{% url 'ach1' %}">ACH1</a>
-                    <a class="nav-item nav-link" href="{% url 'ach2' %}">ACH2</a>
-                    <a class="nav-item nav-link" href="{% url 'ach3' %}">ACH3</a>
-                    <a class="nav-item nav-link" href="{% url 'ach4' %}">ACH4</a>
-                </div>
+            <div class="navbar-nav mr-auto">
+                <a class="nav-item nav-link" href="{% url 'home' %}">Home</a>
+                <a class="nav-item nav-link" href="{% url 'ach' %}">Dach</a>
+                <a class="nav-item nav-link" href="{% url 'ach1' %}">ACH1</a>
+                <a class="nav-item nav-link" href="{% url 'ach2' %}">ACH2</a>
+                <a class="nav-item nav-link" href="{% url 'ach3' %}">ACH3</a>
+                <a class="nav-item nav-link" href="{% url 'ach4' %}">ACH4</a>
+            </div>
 
 
             </div>
-        </div>
-    </nav>
-</header>
+          </div>
+        </nav>
+    </header>
 
 {% for post in posts %}
 
-{% if post.title == '1_Time' %}
-<h4><span style="color: black"><b>Time:</b></span>
-    <b><b><span style="color: #2aa22a"> &nbsp;&nbsp;&nbsp;&nbsp; {{ post.description }}</span></b></b></h4>
-<h4><span style="color: grey">ACH1</span></h4>
-<h4><span style="color: grey">Ambient Temp: {{ post.other }} C</span></h4>
-<h6><span style="color: grey"><b>_________________________________________________________________________________________</b></span></h6>
-{% endif %}
-
-{% if post.title == '1_Condensing Pressure' %}
-    <h6><span style="color: grey"><b>_________________________________________________________________________________________</b></span></h6>
-{% endif %}
-
-{% if post.title != '1_Fan' and post.title != '1_Time' and post.title != '1_Compressor' and post.title != '1_Pump' and  post.title != '1_Temp and Free' and post.title != 'ACH1' %}
-
-<h6>
-<div  class="left-text">
-<span> {{ post.description|split_on_pipe_and_padding:0 }} </span>
-</div>
-<span> {{ post.description|split_on_pipe_and_padding:1 }} </span>
-</h6>
-<p></p>
-
-{% endif %}
-
-{% if post.title == '1_Pump' or post.title == '1_Temp and Free' or post.title == 'ACH1' %}
-    <h6><span style="color: dark grey">{{ post.description }}</span></h6>
+{% if post.title == '1_Time_ACH' %}
+     <h4><span style="color: black"><b>Time:</b></span>
+        <b><b><span style="color: #2aa22a"> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ post.description }}</span></b></b></h4>
+        <h3><span style="color: grey">ACH1</span></h3>
+        <h6><span style="color: grey"><b>____________________________________________________________________________________</b></span></h6>
+{% else %}
+    <h5><span style="color: dark grey">{{ post.description }}</span></h5>
     <p></p>
 {% endif %}
-
-
-{% if post.title == '2_Fan' or post.title == '4_Fan' or post.title == '3_Fan' or post.title == '1_Fan' %}
-<h6>
-    <span style="color: black"><text>Fan 1: </text></span>
-    <span style="color: darkcyan"><b><b><b>{{post.txt_1|percentage_bar}}</b></b></b></span>
-    <span style="color: azure"><b><b><b>{{post.txt_2|percentage_bar}}</b></b></b></span>
-    <span style="color: dark grey"><b>{{post.txt_1|length_to_number}}</b></span>
-    <span style="color: black"><text> | Fan 2: </text></span>
-    <span style="color: darkcyan"><b><b><b>{{post.txt_3|percentage_bar}}</b></b></b></span>
-    <span style="color: azure"><b><b><b>{{post.txt_4|percentage_bar}}</b></b></b></span>
-    <span style="color: dark grey"><b>{{post.txt_3|length_to_number}}</b></span>
-</h6>
-{% endif %}
-
-    {% if post.title == '2_Compressor'  or post.title == '4_Compressor'  or post.title == '3_Compressor' or post.title == '1_Compressor' %}
-
-        {% if post.description|compressors:0 == ' Comp 1: OFF ' %}
-            <h6><span style="color: lightgray">{{ post.description|compressors:0 }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text>&nbsp;</span>
-        {% elif post.description|compressors:0 == ' Comp 1: ON ' %}
-            <span style="color: green"><b>{{ post.description|compressors:0 }}</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text>&nbsp;</span>
-        {% else %}
-            <span style="color: red">{{ post.description|compressors:0 }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text>&nbsp;</span>
-        {% endif %}
-
-        {% if post.description|compressors:1 == ' Comp 2: OFF ' %}
-            <span style="color: lightgray">{{ post.description|compressors:1 }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text>&nbsp;</span>
-        {% elif post.description|compressors:1 == ' Comp 2: ON ' %}
-            <span style="color: green"><b>{{ post.description|compressors:1 }}</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text>&nbsp;</span>
-        {% else %}
-            <span style="color: red">{{ post.description|compressors:1 }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text>&nbsp;</span>
-        {% endif %}
-
-        {% if post.description|compressors:2 == ' Comp 3: OFF ' %}
-            <span style="color: lightgray">{{ post.description|compressors:2 }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text>&nbsp;</span>
-        {% elif post.description|compressors:2 == ' Comp 3: ON ' %}
-            <span style="color: green"><b>{{ post.description|compressors:2 }}</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text>&nbsp;</span>
-        {% else %}
-            <span style="color: red">{{ post.description|compressors:2 }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text>&nbsp;</span>
-        {% endif %}
-
-         {% if post.description|compressors:3 == ' Comp 4: OFF ' %}
-            <span style="color: lightgray">{{ post.description|compressors:3 }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text>&nbsp;</span>
-        {% elif post.description|compressors:3 == ' Comp 4: ON ' %}
-            <span style="color: green"><b>{{ post.description|compressors:3 }}</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text>&nbsp;</span>
-        {% else %}
-            <span style="color: red">{{ post.description|compressors:3 }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<text>  </text></span></h6>
-        {% endif %}
-
-        {% endif %}
-        <p></p>
 
 {% endfor %}
 
@@ -135,6 +53,9 @@
 
 {% endblock page_content %}
 </body>
+
+
+
 
 
 
